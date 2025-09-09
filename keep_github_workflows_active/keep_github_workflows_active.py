@@ -389,10 +389,13 @@ def enable_workflow(owner: str, repository: str, workflow_filename: str, github_
     }
 
     try:
-        response = requests.put(url, headers=headers)
-        response.raise_for_status()  # This will raise an exception for HTTP error codes
-        result = f'Enabled repository {repository}, workflow {workflow_filename}'
-        lib_log_utils.log_info(result)
+        if workflow_filename.startswith("pages-build-deployment"):
+            result = f'Repository {repository}, workflow {workflow_filename} skipped - those can not be enabled'
+        else:
+            response = requests.put(url, headers=headers)
+            response.raise_for_status()  # This will raise an exception for HTTP error codes
+            result = f'Enabled repository {repository}, workflow {workflow_filename}'
+            lib_log_utils.log_info(result)
         return result
 
     except requests.exceptions.HTTPError as exc:
