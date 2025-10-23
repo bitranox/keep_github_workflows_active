@@ -13,8 +13,12 @@
   hanging requests.
 - Simplified CI matrix to run only on ``ubuntu-latest`` with the rolling
   ``3.x`` CPython release.
+- Updated CI packaging checks to invoke installed binaries via ``pipx run``
+  and ``uvx`` so post-install smoke tests use the package-managed entry points.
 - Corrected the CI pipeline to use the current ``astral-sh/setup-uv@v6`` action
   tag.
 
 ### Dependencies
 - Bumped ``ruff`` to ``>=0.14.1`` and ``textual`` to ``>=6.4.0``.
+- Declared ``requests`` as a runtime dependency to support GitHub API calls when
+  the package is installed.
