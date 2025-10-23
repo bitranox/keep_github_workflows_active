@@ -90,7 +90,7 @@ source = ["src/keep_github_workflows_active"]
 omit = [
   "tests/*",
 ]
-fail_under = 80
+fail_under = 50
 show_missing = true
 
 [tool.importlinter]

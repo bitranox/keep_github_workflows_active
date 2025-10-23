@@ -48,7 +48,7 @@ import lib_cli_exit_tools
 from click.core import ParameterSource
 
 from . import __init__conf__
-from . import keep_active
+from . import keep_github_workflow_active as keep_active
 from .behaviors import emit_greeting, noop_main, raise_intentional_failure
 
 #: Shared Click context flags so help output stays consistent across commands.
