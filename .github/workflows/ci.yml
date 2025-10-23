@@ -12,6 +12,9 @@ jobs:
   test:
     name: Tests (Python ${{ matrix.python }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      SECRET_GITHUB_TOKEN: ${{ secrets.SECRET_GITHUB_TOKEN }}
+      SECRET_GITHUB_OWNER: ${{ secrets.SECRET_GITHUB_OWNER }}
     strategy:
       fail-fast: false
       matrix:
