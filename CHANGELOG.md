@@ -13,8 +13,11 @@
   hanging requests.
 - Simplified CI matrix to run only on ``ubuntu-latest`` with the rolling
   ``3.x`` CPython release.
-- Updated CI packaging checks to invoke installed binaries via ``pipx run``
-  and ``uvx`` so post-install smoke tests use the package-managed entry points.
+- Updated CI packaging checks to execute the CLI from the pipx binary directory
+  and via ``uv tool install --from dist/*.whl`` to confirm the built wheel
+  exposes the console entry point correctly.
+- Refined packaging verification to leverage the pipx binary directory and
+  install the local wheel via ``uv tool install --from dist/*.whl``.
 - Corrected the CI pipeline to use the current ``astral-sh/setup-uv@v6`` action
   tag.
 
