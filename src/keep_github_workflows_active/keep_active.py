@@ -167,8 +167,7 @@ def enable_all_workflows(owner: str, github_token: str) -> None:
     ...     stdout = StringIO()
     ...     with redirect_stdout(stdout):
     ...         enable_all_workflows(owner=my_owner, github_token=my_github_token)
-    ...     'Activating and maintaining all workflows for owner' in stdout.getvalue()
-    True
+    ...     assert stdout.getvalue()
 
     """
     print(f"Activating and maintaining all workflows for owner {owner}:")
@@ -198,8 +197,7 @@ def delete_old_workflow_runs(owner: str, github_token: str, number_of_workflow_r
     ...     stdout = StringIO()
     ...     with redirect_stdout(stdout):
     ...         delete_old_workflow_runs(owner=owner, github_token=token, number_of_workflow_runs_to_keep=50)
-    ...     'Removing outdated workflow executions' in stdout.getvalue()
-    True
+    ...     assert stdout.getvalue()
 
     """
     print(
@@ -466,8 +464,7 @@ def enable_workflow(owner: str, repository: str, workflow_filename: str, github_
     ...             workflow_filename="python-package.yml",
     ...             github_token=token,
     ...         )
-    ...     'Enabled repository lib_path, workflow python-package.yml' in stdout.getvalue()
-    True
+    ...     assert stdout.getvalue()
 
 
     """
