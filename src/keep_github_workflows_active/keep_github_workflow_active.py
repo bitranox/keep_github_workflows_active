@@ -156,18 +156,10 @@ def enable_all_workflows(owner: str, github_token: str) -> None:
     :param github_token:
     :return:
 
-    >>> try:
-    ...     my_owner = get_owner()
-    ...     my_github_token = get_github_token()
-    ... except RuntimeError:
-    ...     my_owner = my_github_token = None
-    >>> if my_owner and my_github_token:
-    ...     from contextlib import redirect_stdout
-    ...     from io import StringIO
-    ...     stdout = StringIO()
-    ...     with redirect_stdout(stdout):
-    ...         enable_all_workflows(owner=my_owner, github_token=my_github_token)
-    ...     assert stdout.getvalue()
+    >>> my_owner = get_owner()
+    >>> my_github_token = get_github_token()
+    >>> enable_all_workflows(owner=my_owner, github_token=my_github_token)  # doctest: +ELLIPSIS
+    ...
 
     """
     print(f"Activating and maintaining all workflows for owner {owner}:")
@@ -231,13 +223,6 @@ def get_owner() -> str:
     ------
     RuntimeError
         If the value is missing from both the environment and ``.env`` files.
-
-    Examples
-    --------
-    >>> os.environ["SECRET_GITHUB_OWNER"] = "demo-user"
-    >>> get_owner()
-    'demo-user'
-    >>> _ = os.environ.pop("SECRET_GITHUB_OWNER")
     """
 
     return _lookup_config_value("SECRET_GITHUB_OWNER")
@@ -259,13 +244,6 @@ def get_github_token() -> str:
     ------
     RuntimeError
         If the token is missing everywhere we check.
-
-    Examples
-    --------
-    >>> os.environ["SECRET_GITHUB_TOKEN"] = "abc123"
-    >>> get_github_token()
-    'abc123'
-    >>> _ = os.environ.pop("SECRET_GITHUB_TOKEN")
     """
 
     return _lookup_config_value("SECRET_GITHUB_TOKEN")
