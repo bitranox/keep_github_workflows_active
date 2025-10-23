@@ -1,90 +1,105 @@
-[build-system]
-requires = ['setuptools', 'setuptools-scm']
-build-backend = "setuptools.build_meta"
-
 [project]
-# see: https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
 name = "keep_github_workflows_active"
-authors = [
-    {name = "Robert Nowotny", email = "bitranox@gmail.com"},
-]
-description = "keep gitgub workflows active"
-readme = "README.rst"
-requires-python = ">=3.8.0"
-keywords = [
-]
-license = {text = "MIT"}
+version = "2.0.0"
+description = "Template for python apps with registered cli commands"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = ["rich-click>=1.9.3", "lib_cli_exit_tools>=2.1.0"]
+license = { text = "MIT" }
+authors = [{ name = "bitranox", email = "bitranox@gmail.com" }]
+keywords = ["logging", "rich", "cli", "terminal", "ansi"]
 classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Natural Language :: English",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python",
-    "Topic :: Software Development :: Libraries :: Python Modules",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "License :: OSI Approved :: MIT License",
+  "Environment :: Console",
+  "Operating System :: OS Independent",
+  "Typing :: Typed",
 ]
-# dependencies - former setup.cfg "install_requires"
-# see: https://setuptools.pypa.io/en/latest/userguide/dependency_management.html
-dependencies = [
-    "cli_exit_tools",
-    "click",
-    "lib_detect_testenv",
-    "lib_log_utils",
-    "requests",
-    "toml",
-]
-version = "v1.1.0"
-# seems to be not allowed anymore
-# zip-save = false
 
 [project.urls]
 Homepage = "https://github.com/bitranox/keep_github_workflows_active"
-Documentation = "https://github.com/bitranox/keep_github_workflows_active/blob/master/README.rst"
 Repository = "https://github.com/bitranox/keep_github_workflows_active.git"
-Changelog = "https://github.com/bitranox/keep_github_workflows_active/blob/master/CHANGES.rst"
+Issues = "https://github.com/bitranox/keep_github_workflows_active/issues"
 
 [project.optional-dependencies]
-test = [
-    "black",
-    "codecov",
-    "coloredlogs",
-    "coverage",
-    "flake8",
-    "mypy",
-    "pytest",
-    "pytest-cov",
-    "pytest-runner",
-    "readme_renderer",
+dev = [
+  "pytest>=8.4.2",
+  "pytest-cov>=7.0.0",
+  "ruff>=0.14.1",
+  "pyright>=1.1.406",
+  "bandit>=1.8.6",
+  "build>=1.3.0",
+  "twine>=6.2.0",
+  "codecov-cli>=11.2.3",
+  "pip-audit>=2.9.0",
+  "textual>=6.4.0",
+  "import-linter>=2.5.2"
 ]
 
 [project.scripts]
-    keep_github_workflows_active = "keep_github_workflows_active.keep_github_workflows_active_cli:cli_main"
+keep_github_workflows_active = "keep_github_workflows_active.cli:main"
+keep-github-workflows-active = "keep_github_workflows_active.cli:main"
 
-[tool.setuptools.package-data]
-keep_github_workflows_active = [
-    "*.pyi",
-    "__init__.pyi",
-    "py.typed",
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/keep_github_workflows_active"]
+include = ["src/keep_github_workflows_active/py.typed"]
+
+[tool.ruff]
+line-length = 160
+target-version = "py313"
+
+[tool.ruff.lint.per-file-ignores]
+# ignore the "unused import sys" in the jupyter notebook - which we need (it is a linter hickup)
+"notebooks/*.ipynb" = ["F401"]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+extraPaths = [
+  "src",
+]
+exclude = [
+  "scripts/menu.py",
 ]
 
-[tool.black]
-line-length = 160
-#You should include all Python versions that you want your code to run under
-target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
-# Note that you have to use single-quoted strings in TOML for regular expressions
-include = '\.pyi?$'
-exclude = '/(\.eggs|\.git|\.hg|\.mypy_cache|\.nox|\.tox|\.venv|_build|buck-out|build|dist)/'
-
-[tool.mypy]
-verbosity=0
-warn_unused_configs = true
-ignore_missing_imports = true
-no_implicit_optional = true
-no_strict_optional = true
-show_error_context = true
-
 [tool.pytest.ini_options]
-addopts = "-vvl --doctest-modules"
-doctest_optionflags =  "NORMALIZE_WHITESPACE ELLIPSIS ALLOW_UNICODE ALLOW_BYTES IGNORE_EXCEPTION_DETAIL"
-log_cli = true
-log_cli_level = "CRITICAL"
+addopts = ["--doctest-modules"]
+doctest_optionflags = ["ELLIPSIS", "NORMALIZE_WHITESPACE"]
+pythonpath = ["src"]
+markers = [
+  "os_agnostic: test runs on every supported operating system",
+  "os_windows: test exercises Windows-only behavior",
+  "os_macos: test exercises macOS-only behavior",
+  "os_posix: test exercises behavior requiring POSIX semantics",
+  "os_linux: test exercises Linux-only behavior",
+]
+
+[tool.coverage.run]
+branch = true
+parallel = false
+data_file = ".coverage.unit"
+source = ["src/keep_github_workflows_active"]
+
+[tool.coverage.report]
+omit = [
+  "tests/*",
+]
+fail_under = 85
+show_missing = true
+
+[tool.importlinter]
+root_package = "keep_github_workflows_active"
+
+[[tool.importlinter.contracts]]
+name = "CLI depends on behaviors only"
+type = "layers"
+layers = [
+  "keep_github_workflows_active.cli",
+  "keep_github_workflows_active.behaviors",
+]

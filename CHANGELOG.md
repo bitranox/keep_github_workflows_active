@@ -1,0 +1,18 @@
+# Changelog
+
+## [2.0.0] - 2025-10-23
+### Changed
+- Removed pre-3.13 compatibility shims and migrated internal modules to native
+  Python 3.13 type syntax (e.g., ``list[str]`` and ``Sequence[str] | None``).
+- Hardened GitHub token discovery by falling back to project ``.env`` files
+  when environment variables are unset.
+- Surfaced workflow maintenance helpers as CLI commands
+  (``enable-all-workflows`` and ``delete-old-workflow-runs``) with optional
+  override parameters.
+- Added explicit HTTP timeouts to GitHub workflow maintenance calls to avoid
+  hanging requests.
+- Corrected the CI pipeline to use the current ``astral-sh/setup-uv@v6`` action
+  tag.
+
+### Dependencies
+- Bumped ``ruff`` to ``>=0.14.1`` and ``textual`` to ``>=6.4.0``.

@@ -1,31 +1,54 @@
-## create virtual environment
-## see: https://earthly.dev/blog/python-makefile/
-venv:
-	echo "ToDo - MakeFile is still in Development, contact bitranox@gmail.com if You need it"
-	## virtualenv venv
+SHELL := /bin/bash
 
-## install all needed for development
-develop: venv
-	echo "ToDo - MakeFile is still in Development, contact bitranox@gmail.com if You need it"
-	## venv/bin/python3 -m pip install -e . -r requirements_test.txt
-	## venv/bin/python3 -m pip install -e . -r requirements.txt
+PYTHON ?= python3
+SCRIPTS ?= $(PYTHON) -m scripts
 
-test:
-	echo "ToDo - MakeFile is still in Development, contact bitranox@gmail.com if You need it"
+.PHONY: help install dev test run clean build push release coverage version-current bump bump-patch bump-minor bump-major menu
+
+help:
+	$(SCRIPTS) help
 
 install:
-	echo "ToDo - MakeFile is still in Development, contact bitranox@gmail.com if You need it"
+	$(SCRIPTS) install
 
-## clean the development environment
+dev:
+	$(SCRIPTS) dev
+
+test:
+	$(SCRIPTS) test
+
+run:
+	$(SCRIPTS) run
+
+version-current:
+	$(SCRIPTS) version-current
+
+bump:
+	$(SCRIPTS) bump
+
+bump-patch:
+	$(SCRIPTS) bump-patch
+
+bump-minor:
+	$(SCRIPTS) bump-minor
+
+bump-major:
+	$(SCRIPTS) bump-major
+
 clean:
-	echo "ToDo - MakeFile is still in Development, contact bitranox@gmail.com if You need it"
-	## -rm -rf venv
+	$(SCRIPTS) clean
 
-uninstall:
-	echo "ToDo - MakeFile is still in Development, contact bitranox@gmail.com if You need it"
-	## -rm -rf venv
+coverage:
+	$(SCRIPTS) coverage
 
-## ideas - create make targets for "normal" installation and virtual environments,
-## and to be able to pass the virtual environment directory alternatively
-## not a priority now, since there are many other ways to install this package
-## see: https://earthly.dev/blog/python-makefile/
+push:
+	$(SCRIPTS) push
+
+build:
+	$(SCRIPTS) build
+
+release:
+	$(SCRIPTS) release
+
+menu:
+	$(SCRIPTS) menu
