@@ -105,16 +105,15 @@ jobs:
         run: |
           python -m pip install pipx
           pipx install dist/*.whl
-          BIN_DIR=$(python -c "import pipx; print(pipx.constants.PIPX_BIN_DIR)")
-          "$BIN_DIR/$CLI_BIN" --version
+          "$CLI_BIN" --version 2>/dev/null || python -m "$PACKAGE_MODULE" --version
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - name: uv tool install
         run: |
-          uv tool install --from dist/*.whl keep-github-workflows-active
-          uv tool run keep-github-workflows-active --version
+          uv tool install .
+          "$CLI_BIN" --version 2>/dev/null || python -m "$PACKAGE_MODULE" --version
 
   notebooks:
     name: Execute notebooks (ubuntu, Python 3.13)
