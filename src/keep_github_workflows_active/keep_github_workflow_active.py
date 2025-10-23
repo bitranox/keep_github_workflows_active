@@ -35,7 +35,7 @@ def _candidate_env_files() -> list[pathlib.Path]:
     """
 
     script_dir = pathlib.Path(__file__).resolve().parent
-    repo_root = script_dir.parent
+    repo_root = script_dir.parent.parent
     candidates: list[pathlib.Path] = []
 
     override = os.environ.get("KEEP_GITHUB_WORKFLOWS_ACTIVE_DOTENV_PATH")
@@ -162,12 +162,8 @@ def enable_all_workflows(owner: str, github_token: str) -> None:
     ... except RuntimeError:
     ...     my_owner = my_github_token = None
     >>> if my_owner and my_github_token:
-    ...     from contextlib import redirect_stdout
-    ...     from io import StringIO
-    ...     stdout = StringIO()
-    ...     with redirect_stdout(stdout):
-    ...         enable_all_workflows(owner=my_owner, github_token=my_github_token)
-    ...     assert stdout.getvalue()
+    ...     enable_all_workflows(owner=my_owner, github_token=my_github_token) # doctest: +ELLIPSIS
+    Activating ...
 
     """
     print(f"Activating and maintaining all workflows for owner {owner}:")
@@ -192,12 +188,9 @@ def delete_old_workflow_runs(owner: str, github_token: str, number_of_workflow_r
     ... except RuntimeError:
     ...     owner = token = None
     >>> if owner and token:
-    ...     from contextlib import redirect_stdout
-    ...     from io import StringIO
-    ...     stdout = StringIO()
-    ...     with redirect_stdout(stdout):
-    ...         delete_old_workflow_runs(owner=owner, github_token=token, number_of_workflow_runs_to_keep=50)
-    ...     assert stdout.getvalue()
+    ...     delete_old_workflow_runs(owner=owner, github_token=token, number_of_workflow_runs_to_keep=50)   # doctest: +ELLIPSIS
+    Removing ...
+
 
     """
     print(
