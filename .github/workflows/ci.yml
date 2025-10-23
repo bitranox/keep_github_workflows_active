@@ -113,8 +113,8 @@ jobs:
           enable-cache: true
       - name: uv tool install
         run: |
-          uv tool install --from dist/*.whl "$CLI_BIN"
-          uv tool run "$CLI_BIN" -- --version
+          uv tool install --from dist/*.whl keep-github-workflows-active
+          uv tool run keep-github-workflows-active -- --version
 
   notebooks:
     name: Execute notebooks (ubuntu, Python 3.13)
