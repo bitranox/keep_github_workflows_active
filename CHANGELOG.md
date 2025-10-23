@@ -11,6 +11,8 @@
   override parameters.
 - Added explicit HTTP timeouts to GitHub workflow maintenance calls to avoid
   hanging requests.
+- Simplified CI matrix to run only on ``ubuntu-latest`` with the rolling
+  ``3.x`` CPython release.
 - Corrected the CI pipeline to use the current ``astral-sh/setup-uv@v6`` action
   tag.
 
