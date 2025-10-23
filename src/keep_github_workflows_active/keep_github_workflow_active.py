@@ -156,10 +156,18 @@ def enable_all_workflows(owner: str, github_token: str) -> None:
     :param github_token:
     :return:
 
-    >>> my_owner = get_owner()
-    >>> my_github_token = get_github_token()
-    >>> enable_all_workflows(owner=my_owner, github_token=my_github_token)  # doctest: +ELLIPSIS
-    ...
+    >>> try:
+    ...     my_owner = get_owner()
+    ...     my_github_token = get_github_token()
+    ... except RuntimeError:
+    ...     my_owner = my_github_token = None
+    >>> if my_owner and my_github_token:
+    ...     from contextlib import redirect_stdout
+    ...     from io import StringIO
+    ...     stdout = StringIO()
+    ...     with redirect_stdout(stdout):
+    ...         enable_all_workflows(owner=my_owner, github_token=my_github_token)
+    ...     assert stdout.getvalue()
 
     """
     print(f"Activating and maintaining all workflows for owner {owner}:")
