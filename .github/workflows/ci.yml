@@ -15,6 +15,7 @@ jobs:
     env:
       SECRET_GITHUB_TOKEN: ${{ secrets.SECRET_GITHUB_TOKEN }}
       SECRET_GITHUB_OWNER: ${{ secrets.SECRET_GITHUB_OWNER }}
+      PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
     strategy:
       fail-fast: false
       matrix:
@@ -26,6 +27,11 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
+          cache: 'pip'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
       - name: Extract project metadata
         shell: python
         run: |
@@ -51,14 +57,10 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y python3-systemd
 
-      - name: Upgrade pip
-        shell: bash
-        run: python -m pip install --upgrade pip
-
-      - name: Install dev deps
+      - name: Install dev deps with uv
         shell: bash
         run: |
-          pip install -e .[dev]
+          uv pip install --system -e .[dev]
 
       - name: Run full test suite (lint, types, tests, coverage, codecov)
         shell: bash
@@ -67,13 +69,13 @@ jobs:
         run: make test
       - name: Build wheel/sdist
         shell: bash
-        run: python -m build
+        run: uv build
       - name: Verify wheel install in clean env
         shell: bash
         run: |
-          python -m venv .venv_wheel
+          uv venv .venv_wheel
           . .venv_wheel/bin/activate 2>/dev/null || . .venv_wheel/Scripts/activate 2>/dev/null
-          pip install dist/*.whl
+          uv pip install dist/*.whl
           "$CLI_BIN" --version 2>/dev/null || python -m "$PACKAGE_MODULE" --version
 
   pipx-uv:
@@ -84,6 +86,7 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
+          cache: 'pip'
       - name: Extract project metadata
         shell: python
         run: |
@@ -102,19 +105,17 @@ jobs:
               env.write(f"PROJECT_NAME={project}\n")
               env.write(f"PACKAGE_MODULE={module}\n")
               env.write(f"CLI_BIN={cli_bin}\n")
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
       - name: Build wheel
-        run: |
-          python -m pip install --upgrade pip build
-          python -m build
+        run: uv build
       - name: pipx install from wheel
         run: |
           python -m pip install pipx
           pipx install dist/*.whl
           "$CLI_BIN" --version 2>/dev/null || python -m "$PACKAGE_MODULE" --version
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
       - name: uv tool install
         run: |
           uv tool install .
@@ -128,10 +129,14 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
+          cache: 'pip'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
       - name: Install notebook runner deps
         run: |
-          python -m pip install --upgrade pip
-          pip install nbclient nbformat ipykernel jupyter_client
+          uv pip install --system nbclient nbformat ipykernel jupyter_client
           python -m ipykernel install --user --name python3 --display-name "Python 3"
       - name: Execute Quickstart notebook
         env:
