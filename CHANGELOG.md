@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.1.0] - 2025-10-29
+### Security
+- **Added comprehensive credential sanitization** to prevent token leakage in logs.
+  - New `sanitization` module with functions to redact sensitive data
+  - All logging calls now sanitize messages before output
+  - Protects GitHub tokens (ghp_*, gho_*, etc.), API keys, and authorization headers
+  - Token pattern detection using regex for various formats (hex, base64, GitHub-specific)
+  - Dictionary and nested structure sanitization for structured logging
+  - 100% test coverage with 31 dedicated tests
+  - Comprehensive security documentation in `docs/systemdesign/SECURITY.md`
+
 ## [2.0.0] - 2025-10-23
 ### Changed
 - Removed pre-3.13 compatibility shims and migrated internal modules to native

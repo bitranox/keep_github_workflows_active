@@ -149,6 +149,18 @@ kgwa.print_info()
 ```
 
 
+## Security
+
+All logging operations sanitize sensitive data before output to prevent credential
+leakage. The automation redacts:
+
+- GitHub personal access tokens (ghp_*, gho_*, etc.)
+- Authorization headers and API keys
+- Token-like patterns in error messages
+
+For complete security documentation including incident response procedures, see
+[SECURITY.md](docs/systemdesign/SECURITY.md).
+
 ## Further documentation
 
 - [Install Guide](INSTALL.md)
@@ -156,4 +168,5 @@ kgwa.print_info()
 - [Contributor Guide](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)
 - [Module Reference](docs/systemdesign/module_reference.md)
+- [Security Documentation](docs/systemdesign/SECURITY.md)
 - [License](LICENSE)

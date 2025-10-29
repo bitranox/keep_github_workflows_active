@@ -9,6 +9,9 @@ import sys
 # EXT
 import requests
 
+# LOCAL
+from . import sanitization
+
 REQUEST_TIMEOUT_SECONDS = 30
 
 logger = logging.getLogger(__name__)
@@ -201,7 +204,11 @@ def delete_old_workflow_runs(owner: str, github_token: str, number_of_workflow_r
         workflow_run_ids = get_workflow_runs(owner=owner, repository=repository, github_token=github_token)
         workflow_run_ids_sorted = sorted(workflow_run_ids, reverse=True)
         workflow_run_ids_to_delete = workflow_run_ids_sorted[number_of_workflow_runs_to_keep:]
-        logger.info(f"repository: {repository}, {len(workflow_run_ids)} workflow runs found, {len(workflow_run_ids_to_delete)} to delete.")
+        logger.info(
+            sanitization.sanitize_message(
+                f"repository: {repository}, {len(workflow_run_ids)} workflow runs found, {len(workflow_run_ids_to_delete)} to delete."
+            )
+        )
         for run_id_to_delete in workflow_run_ids_to_delete:
             print(f"remove workflow run {repository}/{run_id_to_delete}")
             delete_workflow_run(owner=owner, repository=repository, github_token=github_token, run_id_to_delete=run_id_to_delete)
@@ -285,11 +292,11 @@ def get_repositories(owner: str, github_token: str) -> list[str]:
         except requests.exceptions.HTTPError as exc:
             error_message = exc.response.json().get("message", "Error")
             result = f"ERROR reading repositories for user {owner}: {error_message}"
-            logger.error(result)
+            logger.error(sanitization.sanitize_message(result))
             raise RuntimeError(result) from exc
 
     result = f"Found {len(repositories)} repositories for user {owner}"
-    logger.info(result)
+    logger.info(sanitization.sanitize_message(result))
     return repositories
 
 
@@ -332,11 +339,11 @@ def get_workflows(owner: str, repository: str, github_token: str) -> list[str]:
         except requests.exceptions.HTTPError as exc:
             error_message = exc.response.json().get("message", "Error")
             result = f"ERROR reading workflows for user: {owner}, repository: {repository}, {error_message}"
-            logger.error(result)
+            logger.error(sanitization.sanitize_message(result))
             raise RuntimeError(result) from exc
 
     result = f"Found {len(workflows)} workflows for user: {owner}, repository: {repository}"
-    logger.info(result)
+    logger.info(sanitization.sanitize_message(result))
     return workflows
 
 
@@ -381,11 +388,11 @@ def get_workflow_runs(owner: str, repository: str, github_token: str) -> list[st
         except requests.exceptions.HTTPError as exc:
             result_error_message = exc.response.json().get("message", "Error")
             result = f"ERROR reading workflow runs for user: {owner}, repository: {repository}, {result_error_message}"
-            logger.error(result)
+            logger.error(sanitization.sanitize_message(result))
             raise RuntimeError(result) from exc
 
     result = f"Found {len(workflow_run_ids)} workflow runs for user: {owner}, repository: {repository}"
-    logger.info(result)
+    logger.info(sanitization.sanitize_message(result))
     return workflow_run_ids
 
 
@@ -407,12 +414,12 @@ def delete_workflow_run(owner: str, repository: str, github_token: str, run_id_t
 
         if response.status_code == 204:
             result = f"Deleted workflow run ID: {run_id_to_delete} for user: {owner}, repository: {repository}"
-            logger.info(result)
+            logger.info(sanitization.sanitize_message(result))
 
     except requests.exceptions.RequestException as exc:
         # For HTTP errors, requests will raise a RequestException. Here we catch all errors derived from RequestException
         result_error_message = f"ERROR deleting workflow run ID: {run_id_to_delete} for user: {owner}, repository: {repository}: {exc}"
-        logger.error(result_error_message)
+        logger.error(sanitization.sanitize_message(result_error_message))
         raise RuntimeError(result_error_message) from exc
 
 
@@ -461,7 +468,7 @@ def enable_workflow(owner: str, repository: str, workflow_filename: str, github_
             response = requests.put(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
             response.raise_for_status()  # This will raise an exception for HTTP error codes
             result = f"Enabled repository {repository}, workflow {workflow_filename}"
-            logger.info(result)
+            logger.info(sanitization.sanitize_message(result))
         return result
 
     except requests.exceptions.HTTPError as exc:
@@ -474,7 +481,7 @@ def enable_workflow(owner: str, repository: str, workflow_filename: str, github_
         else:
             error_message = str(exc)
         result = f"ERROR enabling repository {repository}, workflow {workflow_filename}: {error_message}"
-        logger.error(result)
+        logger.error(sanitization.sanitize_message(result))
         raise RuntimeError(result) from exc
 
 
