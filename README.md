@@ -11,6 +11,7 @@
 [![codecov](https://codecov.io/gh/bitranox/keep_github_workflows_active/graph/badge.svg?token=UFBaUDIgRk)](https://codecov.io/gh/bitranox/keep_github_workflows_active)
 [![Maintainability](https://qlty.sh/badges/041ba2c1-37d6-40bb-85a0-ec5a8a0aca0c/maintainability.svg)](https://qlty.sh/gh/bitranox/projects/keep_github_workflows_active)
 [![Known Vulnerabilities](https://snyk.io/test/github/bitranox/keep_github_workflows_active/badge.svg)](https://snyk.io/test/github/bitranox/keep_github_workflows_active)
+[![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 
 > **CI cadence:** The GitHub Actions CI workflow runs automatically every Monday at 07:00 UTC, in addition to push and pull request triggers.
 
