@@ -34,6 +34,13 @@ author_email = "bitranox@gmail.com"
 #: Console-script name published by the package.
 shell_command = "keep-github-workflows-active"
 
+#: Vendor identifier for lib_layered_config paths (macOS/Windows)
+LAYEREDCONF_VENDOR: str = "bitranox"
+#: Application display name for lib_layered_config paths (macOS/Windows)
+LAYEREDCONF_APP: str = "Keep Github Workflows Active"
+#: Configuration slug for lib_layered_config Linux paths and environment variables
+LAYEREDCONF_SLUG: str = "keep-github-workflows-active"
+
 
 def print_info() -> None:
     """Print the summarised metadata block used by the CLI ``info`` command.
