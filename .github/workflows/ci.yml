@@ -23,7 +23,7 @@ jobs:
         # Test against the latest CPython 3.x release provided by Actions
         python: ["3.x"]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
@@ -82,7 +82,7 @@ jobs:
     name: pipx/uv verification (ubuntu)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
@@ -125,7 +125,7 @@ jobs:
     name: Execute notebooks (ubuntu, Python 3.13)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
