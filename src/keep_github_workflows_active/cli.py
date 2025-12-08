@@ -40,7 +40,8 @@ behaviour remains consistent regardless of entry point.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Final
+from dataclasses import dataclass
+from typing import Final, NamedTuple
 
 import rich_click as click
 
@@ -51,13 +52,32 @@ from . import __init__conf__
 from . import keep_github_workflow_active as keep_active
 from .behaviors import emit_greeting, noop_main, raise_intentional_failure
 
+
+# =============================================================================
+# Dataclass for typed Click context object
+# =============================================================================
+
+
+@dataclass(slots=True)
+class CliContextObject:
+    """Typed context object for Click commands."""
+
+    traceback: bool = False
+
+
 #: Shared Click context flags so help output stays consistent across commands.
-CLICK_CONTEXT_SETTINGS = {"help_option_names": ["-h", "--help"]}  # noqa: C408
+CLICK_CONTEXT_SETTINGS: dict[str, list[str]] = {"help_option_names": ["-h", "--help"]}
 #: Character budget used when printing truncated tracebacks.
 TRACEBACK_SUMMARY_LIMIT: Final[int] = 500
 #: Character budget used when verbose tracebacks are enabled.
 TRACEBACK_VERBOSE_LIMIT: Final[int] = 10_000
-TracebackState = tuple[bool, bool]
+
+
+class TracebackState(NamedTuple):
+    """Typed state for traceback configuration."""
+
+    traceback_enabled: bool
+    force_color: bool
 
 
 def _fallback_owner(owner: str | None) -> str:
@@ -108,7 +128,7 @@ def snapshot_traceback_state() -> TracebackState:
     Returns
     -------
     TracebackState
-        Tuple of ``(traceback_enabled, force_color)``.
+        NamedTuple with ``traceback_enabled`` and ``force_color`` fields.
 
     Examples
     --------
@@ -117,9 +137,9 @@ def snapshot_traceback_state() -> TracebackState:
     True
     """
 
-    return (
-        bool(getattr(lib_cli_exit_tools.config, "traceback", False)),
-        bool(getattr(lib_cli_exit_tools.config, "traceback_force_color", False)),
+    return TracebackState(
+        traceback_enabled=bool(getattr(lib_cli_exit_tools.config, "traceback", False)),
+        force_color=bool(getattr(lib_cli_exit_tools.config, "traceback_force_color", False)),
     )
 
 
@@ -129,7 +149,7 @@ def restore_traceback_state(state: TracebackState) -> None:
     Parameters
     ----------
     state:
-        Tuple returned by :func:`snapshot_traceback_state`.
+        NamedTuple returned by :func:`snapshot_traceback_state`.
 
     Examples
     --------
@@ -140,8 +160,8 @@ def restore_traceback_state(state: TracebackState) -> None:
     True
     """
 
-    lib_cli_exit_tools.config.traceback = bool(state[0])
-    lib_cli_exit_tools.config.traceback_force_color = bool(state[1])
+    lib_cli_exit_tools.config.traceback = state.traceback_enabled
+    lib_cli_exit_tools.config.traceback_force_color = state.force_color
 
 
 def _record_traceback_choice(ctx: click.Context, *, enabled: bool) -> None:
@@ -153,8 +173,8 @@ def _record_traceback_choice(ctx: click.Context, *, enabled: bool) -> None:
         flags.
 
     What
-        Ensures the context has a dict backing store and persists the boolean
-        under the ``"traceback"`` key.
+        Ensures the context has a typed CliContextObject and persists the boolean
+        in the ``traceback`` attribute.
 
     Inputs
         ctx:
@@ -166,8 +186,9 @@ def _record_traceback_choice(ctx: click.Context, *, enabled: bool) -> None:
         Mutates ``ctx.obj``.
     """
 
-    ctx.ensure_object(dict)
-    ctx.obj["traceback"] = enabled
+    if ctx.obj is None or not isinstance(ctx.obj, CliContextObject):
+        ctx.obj = CliContextObject()
+    ctx.obj.traceback = enabled
 
 
 def _announce_traceback_choice(enabled: bool) -> None:

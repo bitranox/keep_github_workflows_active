@@ -2,7 +2,7 @@
 
 ## On session start
 
-- Read following files from directory /media/srv-main/softdev/*/projects/softwarestack/systemprompts and keep their guidance in working memory:
+- Read following files from directory /media/srv-main-softdev/*/projects/softwarestack/systemprompts and keep their guidance in working memory:
   - core_programming_solid.md
   - bash_clean_architecture.md
   - bash_clean_code.md
@@ -48,7 +48,7 @@ when writing or refracturing Python scripts, apply those Rules :
 ### Versioning & Releases
 
 - Single source of truth for the package version is `pyproject.toml` (`[project].version`).
-- Automation rewrites `src/lib_cli_exit_tools/__init__conf__.py` from `pyproject.toml`, so runtime code imports generated constants instead of querying `importlib.metadata`.
+- Automation rewrites `src/keep_github_workflows_active/__init__conf__.py` from `pyproject.toml`, so runtime code imports generated constants instead of querying `importlib.metadata`.
 - After updating project metadata (version, summary, URLs, authors) run `make test` (or `python -m scripts.test`) to regenerate the metadata module before committing.
 - Tag releases `vX.Y.Z` and push tags; CI will build artifacts and publish when configured.
 
@@ -83,9 +83,35 @@ when writing or refracturing Python scripts, apply those Rules :
 ## Architecture Overview
   - apply python_clean_architecture.md
 
+## Data Architecture Rules
+
+This project follows strict data architecture rules using Pydantic models and Enums:
+
+### Core Principles
+1. **Pydantic at Boundaries**: All external data (API requests, file reads, env vars) is parsed into Pydantic models immediately upon entry
+2. **Pydantic for Export**: All outputs use Pydantic's `.model_dump()` or `.model_dump_json()`
+3. **No Internal Dicts**: Inside the application, never use raw dicts for structured data - use typed models
+4. **Enums for Constants**: All string literals representing categories, statuses, or modes use Enums (prefer `IntEnum` for performance)
+5. **Minimize Conversions**: Ideal flow is ONE parse at input, ONE dump at output
+
+### Key Pydantic Models
+- `GitHubRepository`, `GitHubWorkflow`, `GitHubWorkflowRun` - GitHub API responses
+- `GitHubErrorResponse` - Error parsing with `from_response()` factory
+- `PaginationLink` - Typed wrapper for pagination headers with `from_link_dict()` factory
+- `EnvConfig` - Dynamic configuration with `__getattr__` for typed attribute access
+
+### Enums
+- `SkippedWorkflowType` (IntEnum) - Workflow types to skip during enablement
+
+### Exceptions to Rules (Framework Requirements)
+- `CLICK_CONTEXT_SETTINGS` dict - Required by Click framework API
+- Pydantic `model_validator(mode="before")` returning dict - Required by Pydantic
+- `sanitization.py` dict handling - Security utility designed for arbitrary dict sanitization
+
 ## Security & Configuration Tips
 - `.env` is only for local tooling (CodeCov tokens, etc.); do not commit secrets.
 - Rich logging should sanitize payloads before rendering once implemented.
+- All logging calls use `sanitization.sanitize_message()` to prevent credential leakage.
 
 ## Translations (Docs)
 

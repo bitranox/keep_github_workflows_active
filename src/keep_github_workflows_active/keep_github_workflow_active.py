@@ -5,9 +5,12 @@ import logging
 import os
 import pathlib
 import sys
+from enum import IntEnum
+from typing import Any
 
 # EXT
 import requests
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # LOCAL
 from . import sanitization
@@ -15,6 +18,199 @@ from . import sanitization
 REQUEST_TIMEOUT_SECONDS = 30
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Enums for fixed string values
+# =============================================================================
+
+
+class SkippedWorkflowType(IntEnum):
+    """Workflow types that are skipped during enablement."""
+
+    PAGES_BUILD_DEPLOYMENT = 1
+    DEPENDABOT = 2
+
+
+SKIPPED_WORKFLOW_PREFIXES: dict[SkippedWorkflowType, str] = {
+    SkippedWorkflowType.PAGES_BUILD_DEPLOYMENT: "pages-build-deployment",
+    SkippedWorkflowType.DEPENDABOT: "dependabot",
+}
+
+
+# =============================================================================
+# Pydantic models for GitHub API responses (external boundary)
+# =============================================================================
+
+
+class GitHubRepository(BaseModel):
+    """GitHub repository from API response."""
+
+    model_config = ConfigDict(extra="ignore")
+    name: str = ""
+
+
+class GitHubRepositoriesResponse(BaseModel):
+    """List of repositories from GitHub API.
+
+    This model wraps the list response from the GitHub API.
+    Use model_validate() to parse raw JSON list responses.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+    repositories: list[GitHubRepository] = Field(  # pyright: ignore[reportUnknownVariableType]
+        default_factory=list
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _wrap_list_response(cls, data: Any) -> dict[str, Any]:  # noqa: ANN401
+        """Wrap list responses into the expected dict structure."""
+        if isinstance(data, list):
+            return {"repositories": data}
+        if isinstance(data, dict):
+            return dict(data)  # pyright: ignore[reportUnknownArgumentType]
+        return {"repositories": []}
+
+
+class GitHubWorkflow(BaseModel):
+    """GitHub workflow from API response."""
+
+    model_config = ConfigDict(extra="ignore")
+    path: str = ""
+
+    @property
+    def filename(self) -> str:
+        """Extract workflow filename from path."""
+        return pathlib.Path(self.path).name
+
+
+class GitHubWorkflowsResponse(BaseModel):
+    """Workflows response from GitHub API.
+
+    Uses Pydantic's built-in validation to parse the GitHub API response.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+    workflows: list[GitHubWorkflow] = Field(  # pyright: ignore[reportUnknownVariableType]
+        default_factory=list
+    )
+
+
+class GitHubWorkflowRun(BaseModel):
+    """GitHub workflow run from API response."""
+
+    model_config = ConfigDict(extra="ignore")
+    id: int = 0
+
+
+class GitHubWorkflowRunsResponse(BaseModel):
+    """Workflow runs response from GitHub API.
+
+    Uses Pydantic's built-in validation to parse the GitHub API response.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+    workflow_runs: list[GitHubWorkflowRun] = Field(  # pyright: ignore[reportUnknownVariableType]
+        default_factory=list
+    )
+
+
+class GitHubErrorResponse(BaseModel):
+    """GitHub API error response.
+
+    Uses Pydantic's built-in validation to parse error responses.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+    message: str = "Error"
+
+    @classmethod
+    def from_response(cls, response: requests.Response | None) -> "GitHubErrorResponse":
+        """Parse error from response, handling various failure modes."""
+        if response is None:
+            return cls()
+        try:
+            return cls.model_validate(response.json())
+        except (ValueError, AttributeError):
+            return cls(message=response.text or response.reason or "Error")
+
+
+class PaginationLink(BaseModel):
+    """Single pagination link from GitHub API response headers.
+
+    Represents a single link entry from the Link header used for pagination.
+    """
+
+    model_config = ConfigDict(extra="ignore")
+    url: str = ""
+
+    @classmethod
+    def from_link_dict(cls, link_data: dict[str, str] | None) -> "PaginationLink | None":
+        """Parse pagination link from requests library link dict.
+
+        Parameters
+        ----------
+        link_data:
+            Dictionary from requests.Response.links containing 'url' key.
+
+        Returns
+        -------
+        PaginationLink | None
+            Parsed link model or None if no valid data.
+        """
+        if link_data is None:
+            return None
+        url = link_data.get("url", "")
+        if not url:
+            return None
+        return cls(url=url)
+
+
+# =============================================================================
+# Pydantic model for internal configuration
+# =============================================================================
+
+
+class EnvConfig(BaseModel):
+    """Environment configuration values parsed from .env file.
+
+    Uses Pydantic's built-in validation with extra='allow' to capture
+    arbitrary key-value pairs from .env files. Access values via attribute
+    access (e.g., config.KEY) or the get() method.
+    """
+
+    model_config = ConfigDict(extra="allow", frozen=True)
+
+    def __getattr__(self, key: str) -> str | None:
+        """Retrieve configuration value by attribute access.
+
+        Examples
+        --------
+        >>> config = EnvConfig.model_validate({"FOO": "bar"})
+        >>> config.FOO
+        'bar'
+        >>> config.MISSING is None
+        True
+        """
+        extra = self.model_extra or {}
+        value = extra.get(key)
+        return str(value) if value is not None else None
+
+    def get_value(self, key: str) -> str | None:
+        """Retrieve configuration value by key (explicit method).
+
+        Parameters
+        ----------
+        key:
+            The configuration key to look up.
+
+        Returns
+        -------
+        str | None
+            The configuration value as a string, or None if not found.
+        """
+        return getattr(self, key)
 
 
 def _candidate_env_files() -> list[pathlib.Path]:
@@ -64,7 +260,7 @@ def _candidate_env_files() -> list[pathlib.Path]:
     return existing_files
 
 
-def _read_env_file(path: pathlib.Path) -> dict[str, str]:
+def _read_env_file(path: pathlib.Path) -> EnvConfig:
     """Parse ``key=value`` pairs from a ``.env`` file.
 
     Parameters
@@ -74,8 +270,8 @@ def _read_env_file(path: pathlib.Path) -> dict[str, str]:
 
     Returns
     -------
-    dict[str, str]
-        Mapping of keys to values discovered in the file.
+    EnvConfig
+        Pydantic model containing parsed configuration values.
 
     Examples
     --------
@@ -84,11 +280,11 @@ def _read_env_file(path: pathlib.Path) -> dict[str, str]:
     ...     _ = tmp.write("FOO=bar\\n# comment\\nBAZ = qux\\n")
     ...     _ = tmp.flush()
     ...     parsed = _read_env_file(pathlib.Path(tmp.name))
-    >>> parsed == {"FOO": "bar", "BAZ": "qux"}
+    >>> parsed.FOO == "bar" and parsed.BAZ == "qux"
     True
     """
 
-    values: dict[str, str] = {}
+    parsed_values: dict[str, str] = {}
     with path.open(encoding="utf-8") as stream:
         for raw_line in stream:
             stripped = raw_line.strip()
@@ -97,8 +293,8 @@ def _read_env_file(path: pathlib.Path) -> dict[str, str]:
             key, separator, remainder = stripped.partition("=")
             if not separator:
                 continue
-            values[key.strip()] = remainder.strip().strip('"').strip("'")
-    return values
+            parsed_values[key.strip()] = remainder.strip().strip('"').strip("'")
+    return EnvConfig.model_validate(parsed_values)
 
 
 def _lookup_config_value(key: str) -> str:
@@ -146,7 +342,7 @@ def _lookup_config_value(key: str) -> str:
 
     for env_file in _candidate_env_files():
         config = _read_env_file(env_file)
-        file_value = config.get(key)
+        file_value = config.get_value(key)
         if file_value:
             return file_value
 
@@ -257,6 +453,27 @@ def get_github_token() -> str:
     return _lookup_config_value("SECRET_GITHUB_TOKEN")
 
 
+def _get_next_page_url(response: requests.Response) -> str | None:
+    """Extract next page URL from GitHub API pagination links.
+
+    Parses the Link header from the GitHub API response and returns
+    the 'next' page URL if present.
+
+    Parameters
+    ----------
+    response:
+        HTTP response from GitHub API.
+
+    Returns
+    -------
+    str | None
+        URL for the next page, or None if no more pages.
+    """
+    link_dict = response.links.get("next")
+    link = PaginationLink.from_link_dict(link_dict)
+    return link.url if link else None
+
+
 def get_repositories(owner: str, github_token: str) -> list[str]:
     """
     Fetch all repositories for a given GitHub user, handling pagination and setting the page size to 100.
@@ -276,22 +493,20 @@ def get_repositories(owner: str, github_token: str) -> list[str]:
 
     """
     repositories: list[str] = []
-    url = f"https://api.github.com/users/{owner}/repos?per_page=100"
+    url: str | None = f"https://api.github.com/users/{owner}/repos?per_page=100"
     headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github.v3+json"}
 
     while url:
         try:
             response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
-            response.raise_for_status()  # Raises HTTPError for bad responses
-            data = response.json()
-            repositories.extend([repo["name"] for repo in data])
-
-            # Get the URL for the next page from the response headers, if present
-            url = response.links.get("next", {}).get("url", None)
+            response.raise_for_status()
+            parsed = GitHubRepositoriesResponse.model_validate(response.json())
+            repositories.extend(repo.name for repo in parsed.repositories)
+            url = _get_next_page_url(response)
 
         except requests.exceptions.HTTPError as exc:
-            error_message = exc.response.json().get("message", "Error")
-            result = f"ERROR reading repositories for user {owner}: {error_message}"
+            error = GitHubErrorResponse.from_response(exc.response)
+            result = f"ERROR reading repositories for user {owner}: {error.message}"
             logger.error(sanitization.sanitize_message(result))
             raise RuntimeError(result) from exc
 
@@ -323,22 +538,20 @@ def get_workflows(owner: str, repository: str, github_token: str) -> list[str]:
 
     """
     workflows: list[str] = []
-    url = f"https://api.github.com/repos/{owner}/{repository}/actions/workflows?per_page=100"
+    url: str | None = f"https://api.github.com/repos/{owner}/{repository}/actions/workflows?per_page=100"
     headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github.v3+json"}
 
     while url:
         try:
             response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
-            response.raise_for_status()  # Raises HTTPError for bad responses
-            data = response.json()
-            workflows.extend([pathlib.Path(workflow["path"]).name for workflow in data.get("workflows", [])])
-
-            # Get the URL for the next page from the response headers, if present
-            url = response.links.get("next", {}).get("url", None)
+            response.raise_for_status()
+            parsed = GitHubWorkflowsResponse.model_validate(response.json())
+            workflows.extend(workflow.filename for workflow in parsed.workflows)
+            url = _get_next_page_url(response)
 
         except requests.exceptions.HTTPError as exc:
-            error_message = exc.response.json().get("message", "Error")
-            result = f"ERROR reading workflows for user: {owner}, repository: {repository}, {error_message}"
+            error = GitHubErrorResponse.from_response(exc.response)
+            result = f"ERROR reading workflows for user: {owner}, repository: {repository}, {error.message}"
             logger.error(sanitization.sanitize_message(result))
             raise RuntimeError(result) from exc
 
@@ -347,7 +560,7 @@ def get_workflows(owner: str, repository: str, github_token: str) -> list[str]:
     return workflows
 
 
-def get_workflow_runs(owner: str, repository: str, github_token: str) -> list[str]:
+def get_workflow_runs(owner: str, repository: str, github_token: str) -> list[int]:
     """
     Fetch all workflow runs for a GitHub repository using the GitHub API v3, handling pagination.
 
@@ -368,26 +581,21 @@ def get_workflow_runs(owner: str, repository: str, github_token: str) -> list[st
 
 
     """
-    # set pagination to 100 (the maximum at GitHub), to have fewer requests
-    url = f"https://api.github.com/repos/{owner}/{repository}/actions/runs?per_page=100"
+    url: str | None = f"https://api.github.com/repos/{owner}/{repository}/actions/runs?per_page=100"
     headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github.v3+json"}
 
-    workflow_run_ids: list[str] = []
+    workflow_run_ids: list[int] = []
     while url:
         try:
             response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
-            response.raise_for_status()  # Raises an HTTPError if the response was an error
-
-            # Process response data
-            data = response.json()
-            workflow_run_ids.extend([run["id"] for run in data.get("workflow_runs", [])])
-
-            # Check for the 'next' page link
-            url = response.links.get("next", {}).get("url", None)
+            response.raise_for_status()
+            parsed = GitHubWorkflowRunsResponse.model_validate(response.json())
+            workflow_run_ids.extend(run.id for run in parsed.workflow_runs)
+            url = _get_next_page_url(response)
 
         except requests.exceptions.HTTPError as exc:
-            result_error_message = exc.response.json().get("message", "Error")
-            result = f"ERROR reading workflow runs for user: {owner}, repository: {repository}, {result_error_message}"
+            error = GitHubErrorResponse.from_response(exc.response)
+            result = f"ERROR reading workflow runs for user: {owner}, repository: {repository}, {error.message}"
             logger.error(sanitization.sanitize_message(result))
             raise RuntimeError(result) from exc
 
@@ -396,7 +604,10 @@ def get_workflow_runs(owner: str, repository: str, github_token: str) -> list[st
     return workflow_run_ids
 
 
-def delete_workflow_run(owner: str, repository: str, github_token: str, run_id_to_delete: str) -> None:
+HTTP_NO_CONTENT = 204
+
+
+def delete_workflow_run(owner: str, repository: str, github_token: str, run_id_to_delete: int) -> None:
     """
     Delete a specified workflow run for a GitHub repository.
 
@@ -412,15 +623,22 @@ def delete_workflow_run(owner: str, repository: str, github_token: str, run_id_t
     try:
         response = requests.delete(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
 
-        if response.status_code == 204:
+        if response.status_code == HTTP_NO_CONTENT:
             result = f"Deleted workflow run ID: {run_id_to_delete} for user: {owner}, repository: {repository}"
             logger.info(sanitization.sanitize_message(result))
 
     except requests.exceptions.RequestException as exc:
-        # For HTTP errors, requests will raise a RequestException. Here we catch all errors derived from RequestException
         result_error_message = f"ERROR deleting workflow run ID: {run_id_to_delete} for user: {owner}, repository: {repository}: {exc}"
         logger.error(sanitization.sanitize_message(result_error_message))
         raise RuntimeError(result_error_message) from exc
+
+
+def _is_skipped_workflow(workflow_filename: str) -> SkippedWorkflowType | None:
+    """Check if workflow should be skipped and return the reason."""
+    for skip_type, prefix in SKIPPED_WORKFLOW_PREFIXES.items():
+        if workflow_filename.startswith(prefix):
+            return skip_type
+    return None
 
 
 def enable_workflow(owner: str, repository: str, workflow_filename: str, github_token: str) -> str:
@@ -455,32 +673,26 @@ def enable_workflow(owner: str, repository: str, workflow_filename: str, github_
 
     """
     url = f"https://api.github.com/repos/{owner}/{repository}/actions/workflows/{workflow_filename}/enable"
-
     headers = {"Accept": "application/vnd.github.v3+json", "Authorization": f"Bearer {github_token}"}
 
     response: requests.Response | None = None
     try:
-        if workflow_filename.startswith("pages-build-deployment"):
+        skip_reason = _is_skipped_workflow(workflow_filename)
+        if skip_reason == SkippedWorkflowType.PAGES_BUILD_DEPLOYMENT:
             result = f"Repository {repository}, workflow {workflow_filename} skipped - those can not be enabled"
-        elif workflow_filename.startswith("dependabot"):
+        elif skip_reason == SkippedWorkflowType.DEPENDABOT:
             result = f"Repository {repository}, workflow {workflow_filename} skipped - managed by Dependabot"
         else:
             response = requests.put(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
-            response.raise_for_status()  # This will raise an exception for HTTP error codes
+            response.raise_for_status()
             result = f"Enabled repository {repository}, workflow {workflow_filename}"
             logger.info(sanitization.sanitize_message(result))
         return result
 
     except requests.exceptions.HTTPError as exc:
         resp = exc.response if exc.response is not None else response
-        if resp is not None:
-            try:
-                error_message = resp.json().get("message", "Error")
-            except ValueError:
-                error_message = resp.text or resp.reason or "Error"
-        else:
-            error_message = str(exc)
-        result = f"ERROR enabling repository {repository}, workflow {workflow_filename}: {error_message}"
+        error = GitHubErrorResponse.from_response(resp)
+        result = f"ERROR enabling repository {repository}, workflow {workflow_filename}: {error.message}"
         logger.error(sanitization.sanitize_message(result))
         raise RuntimeError(result) from exc
 

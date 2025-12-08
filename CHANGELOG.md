@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.1.1] - 2025-12-08
+
+### Changed
+- **Data Architecture Enforcement**: Refactored to follow strict Pydantic/Enum architecture rules.
+  - `EnvConfig` now uses `__getattr__` for typed attribute access instead of dict-style `.get()` method
+  - Added `PaginationLink` Pydantic model for typed pagination header handling
+  - Replaced dict key access (`response.links.get("next")`) with typed model access (`link.url`)
+  - Added `get_value()` method to `EnvConfig` for explicit key lookup
+
+### Documentation
+- Updated `CLAUDE.md` with Data Architecture Rules section documenting:
+  - Core principles (Pydantic at boundaries, no internal dicts, Enums for constants)
+  - Key Pydantic models and Enums used in the project
+  - Framework exceptions where dict usage is required
+- Fixed incorrect path reference in Versioning section (`lib_cli_exit_tools` → `keep_github_workflows_active`)
+
 ## [2.1.0] - 2025-10-29
 ### Security
 - **Added comprehensive credential sanitization** to prevent token leakage in logs.
