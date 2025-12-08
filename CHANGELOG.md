@@ -9,6 +9,9 @@
   - Replaced dict key access (`response.links.get("next")`) with typed model access (`link.url`)
   - Added `get_value()` method to `EnvConfig` for explicit key lookup
 
+### Dependencies
+- Added `pydantic>=2.10.0` as a runtime dependency for typed data models
+
 ### Documentation
 - Updated `CLAUDE.md` with Data Architecture Rules section documenting:
   - Core principles (Pydantic at boundaries, no internal dicts, Enums for constants)
