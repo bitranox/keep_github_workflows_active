@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.2] - 2025-12-15
+
+### Changed
+- Migrated scripts to use `rtoml` for TOML parsing
+
+### Dependencies
+- Bumped `lib_cli_exit_tools` to `>=2.2.2`
+- Bumped `ruff` to `>=0.14.9`
+- Bumped `textual` to `>=6.9.0`
+- Bumped `import-linter` to `>=2.9`
+- Added `rtoml>=0.13.0` as dev dependency for improved TOML handling
+
 ## [2.1.1] - 2025-12-08
 
 ### Changed
