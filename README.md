@@ -1,7 +1,7 @@
 # keep_github_workflows_active
 
 <!-- Badges -->
-[![CI](https://github.com/bitranox/keep_github_workflows_active/actions/workflows/ci.yml/badge.svg)](https://github.com/bitranox/keep_github_workflows_active/actions/workflows/ci.yml)
+[![CI](https://github.com/bitranox/keep_github_workflows_active/actions/workflows/default_cicd_public.yml/badge.svg)](https://github.com/bitranox/keep_github_workflows_active/actions/workflows/default_cicd_public.yml)
 [![CodeQL](https://github.com/bitranox/keep_github_workflows_active/actions/workflows/codeql.yml/badge.svg)](https://github.com/bitranox/keep_github_workflows_active/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Open in Codespaces](https://img.shields.io/badge/Codespaces-Open-blue?logo=github&logoColor=white&style=flat-square)](https://codespaces.new/bitranox/keep_github_workflows_active?quickstart=1)
