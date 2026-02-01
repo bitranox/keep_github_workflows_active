@@ -12,6 +12,7 @@
 
 ### Changed
 - Excluded `keep_github_workflow_active.py` from doctest collection (doctests access GitHub API when credentials available)
+- Added setuptools vulnerability exceptions to pip-audit (PYSEC-2022-43012, PYSEC-2025-49, CVE-2024-6345) - transitive dependency pinned by build tools
 
 ## [2.1.2] - 2025-12-15
 
