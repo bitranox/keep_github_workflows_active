@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.1.3] - 2026-02-01
+
+### Fixed
+- Fixed pyright errors in `test_metadata.py` by replacing `tomllib` (Python 3.11+) with `rtoml` for Python 3.10 compatibility
+
+### Added
+- Added `local_only` pytest marker for tests requiring GitHub credentials
+- Created `test_github_integration.py` with dedicated GitHub API integration tests
+- Tests marked `local_only` are excluded from public CI (`default_cicd_public.yml`) but run in `activate_workflows.yml` where secrets are available
+
+### Changed
+- Excluded `keep_github_workflow_active.py` from doctest collection (doctests access GitHub API when credentials available)
+
 ## [2.1.2] - 2025-12-15
 
 ### Changed
