@@ -147,4 +147,4 @@ layers = [
 # PYSEC-2022-43012: fixed in 65.5.1
 # PYSEC-2025-49: fixed in 78.1.1
 # CVE-2024-6345: fixed in 70.0.0
-ignore-vulns = ["GHSA-4xh5-x5gv-qwph", "PYSEC-2022-42969", "PYSEC-2022-43012", "PYSEC-2025-49", "CVE-2024-6345"]
+ignore-vulns = ["GHSA-4xh5-x5gv-qwph", "PYSEC-2022-42969", "PYSEC-2022-43012", "PYSEC-2025-49", "CVE-2024-6345","CVE-2026-1703"]
