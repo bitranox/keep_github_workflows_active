@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased]
+
+## [2.1.4] - 2026-02-13
+
+### Fixed
+- Fixed shellcheck SC1083 warning and shfmt formatting in `reset_git_history.sh`
+
+### Changed
+- Updated CI/CD workflows: added Bash 4+ support for macOS, streamlined metadata extraction action
+- Updated README badge path
+
+### Dependencies
+- Bumped `lib_cli_exit_tools` to `>=2.3.0`
+- Bumped `ruff` to `>=0.15.1`
+- Bumped `import-linter` to `>=2.10`
+
+### Security
+- Added CVE-2026-1703 and CVE-2026-26007 (cryptography 46.0.3) to pip-audit ignore list
+
 ## [2.1.3] - 2026-02-01
 
 ### Fixed
