@@ -4,7 +4,7 @@
 
 - Read following files from directory /media/srv-main-softdev/*/projects/softwarestack/systemprompts and keep their guidance in working memory:
   - core_programming_solid.md
-  - bash_clean_architecture.md
+  - use skill `bx-bash-clean-architecture`
   - bash_clean_code.md
   - bash_small_functions.md
   - python_solid_architecture_enforcer.md
@@ -24,7 +24,7 @@ always apply those Rules :
 when writing or refracturing Bash scripts, apply those Rules :
 
 - core_programming_solid.md
-- bash_clean_architecture.md
+- use skill `bx-bash-clean-architecture`
 - bash_clean_code.md
 - bash_small_functions.md
 
