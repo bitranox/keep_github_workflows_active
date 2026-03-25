@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [2.1.5] - 2026-03-25
+
+### Changed
+- Updated CI/CD workflows: improved artifact upload/download actions, updated runner configurations
+- Updated Makefile with streamlined build targets
+
+### Security
+- Added CVE-2026-25990 (pillow), CVE-2025-8869 (pip), CVE-2026-25645 (requests) to pip-audit ignore list
+- Added CVE-2026-4539 (pygments) to pip-audit ignore list
+
 ## [2.1.4] - 2026-02-13
 
 ### Fixed
