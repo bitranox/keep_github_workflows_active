@@ -79,13 +79,38 @@ jobs:
           "$CLI_BIN" --version 2>/dev/null || python -m "$PACKAGE_MODULE" --version
 
   activate:
-    name: Enable workflows & delete old runs
+    name: Enable workflows & delete old runs (bitranox)
     needs: test
     # if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     env:
       SECRET_GITHUB_TOKEN: ${{ secrets.SECRET_GITHUB_TOKEN }}
       SECRET_GITHUB_OWNER: ${{ secrets.SECRET_GITHUB_OWNER }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+          cache: 'pip'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Install package
+        run: uv pip install --system -e .
+      - name: Enable all workflows
+        run: keep-github-workflows-active enable-all-workflows
+      - name: Delete old workflow runs
+        run: keep-github-workflows-active delete-old-workflow-runs
+
+  activate-org:
+    name: Enable workflows & delete old runs (RotekHandelsGmbH)
+    needs: test
+    # if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    env:
+      SECRET_GITHUB_TOKEN: ${{ secrets.SECRET_GITHUB_TOKEN2 }}
+      SECRET_GITHUB_OWNER: ${{ secrets.SECRET_GITHUB_OWNER2 }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
