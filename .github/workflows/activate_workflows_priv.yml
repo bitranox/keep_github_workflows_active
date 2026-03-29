@@ -1,0 +1,193 @@
+name: Activate Workflows
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: "47 3 * * 5"  # Every Friday at 03:47 UTC
+
+jobs:
+  test:
+    name: Tests (Python ${{ matrix.python }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    env:
+      SECRET_GITHUB_TOKEN: ${{ secrets.SECRET_GITHUB_TOKEN2 }}
+      SECRET_GITHUB_OWNER: ${{ secrets.SECRET_GITHUB_OWNER2 }}
+      PYO3_USE_ABI3_FORWARD_COMPATIBILITY: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        # Test against the latest CPython 3.x release provided by Actions
+        python: ["3.x"]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+          cache: 'pip'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Extract project metadata
+        shell: python
+        run: |
+          import os
+          import tomllib
+          from pathlib import Path
+
+          data = tomllib.loads(Path('pyproject.toml').read_text('utf-8'))
+          project = data['project']['name']
+          module = project.replace('-', '_')
+          dash = project.replace('_', '-')
+          scripts = list(data['project'].get('scripts', {}).keys())
+          cli_bin = scripts[0] if scripts else dash
+
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as env:
+              env.write(f"PROJECT_NAME={project}\n")
+              env.write(f"PACKAGE_MODULE={module}\n")
+              env.write(f"CLI_BIN={cli_bin}\n")
+      - name: Install journald prerequisites
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-systemd
+
+      - name: Install dev deps with uv
+        shell: bash
+        run: |
+          uv pip install --system -e .[dev]
+
+      - name: Run full test suite (lint, types, tests, coverage, codecov)
+        shell: bash
+        env:
+          TEST_VERBOSE: "1"
+        run: make test
+      - name: Build wheel/sdist
+        shell: bash
+        run: uv build
+      - name: Verify wheel install in clean env
+        shell: bash
+        run: |
+          uv venv .venv_wheel
+          . .venv_wheel/bin/activate 2>/dev/null || . .venv_wheel/Scripts/activate 2>/dev/null
+          uv pip install dist/*.whl
+          "$CLI_BIN" --version 2>/dev/null || python -m "$PACKAGE_MODULE" --version
+
+  activate:
+    name: Enable workflows & delete old runs
+    needs: test
+    # if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    env:
+      SECRET_GITHUB_TOKEN: ${{ secrets.SECRET_GITHUB_TOKEN }}
+      SECRET_GITHUB_OWNER: ${{ secrets.SECRET_GITHUB_OWNER }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+          cache: 'pip'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Install package
+        run: uv pip install --system -e .
+      - name: Enable all workflows
+        run: keep-github-workflows-active enable-all-workflows
+      - name: Delete old workflow runs
+        run: keep-github-workflows-active delete-old-workflow-runs
+
+  pipx-uv:
+    name: pipx/uv verification (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: 'pip'
+      - name: Extract project metadata
+        shell: python
+        run: |
+          import os
+          import tomllib
+          from pathlib import Path
+
+          data = tomllib.loads(Path('pyproject.toml').read_text('utf-8'))
+          project = data['project']['name']
+          module = project.replace('-', '_')
+          dash = project.replace('_', '-')
+          scripts = list(data['project'].get('scripts', {}).keys())
+          cli_bin = scripts[0] if scripts else dash
+
+          with open(os.environ['GITHUB_ENV'], 'a', encoding='utf-8') as env:
+              env.write(f"PROJECT_NAME={project}\n")
+              env.write(f"PACKAGE_MODULE={module}\n")
+              env.write(f"CLI_BIN={cli_bin}\n")
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Build wheel
+        run: uv build
+      - name: pipx install from wheel
+        run: |
+          python -m pip install pipx
+          pipx install dist/*.whl
+          "$CLI_BIN" --version 2>/dev/null || python -m "$PACKAGE_MODULE" --version
+      - name: uv tool install
+        run: |
+          uv tool install .
+          "$CLI_BIN" --version 2>/dev/null || python -m "$PACKAGE_MODULE" --version
+
+  notebooks:
+    name: Execute notebooks (ubuntu, Python 3.13)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: 'pip'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Install notebook runner deps
+        run: |
+          uv pip install --system nbclient nbformat ipykernel jupyter_client
+          python -m ipykernel install --user --name python3 --display-name "Python 3"
+      - name: Execute Quickstart notebook
+        env:
+          PIP_DISABLE_PIP_VERSION_CHECK: "1"
+          PIP_NO_INPUT: "1"
+        run: |
+          python - << 'PY'
+          from pathlib import Path
+
+          import nbformat
+          from nbclient import NotebookClient
+
+          nb_path = Path('notebooks/Quickstart.ipynb')
+          if not nb_path.exists():
+              raise SystemExit(f"Notebook not found: {nb_path}")
+
+          notebook = nbformat.read(nb_path, as_version=4)
+          client = NotebookClient(
+              notebook,
+              timeout=900,
+              kernel_name='python3',
+              allow_errors=False,
+          )
+          client.execute()
+
+          out_path = Path('notebooks/Quickstart-executed.ipynb')
+          nbformat.write(notebook, out_path)
+          print(f"Executed notebook written to: {out_path}")
+          PY
