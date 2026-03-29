@@ -9,20 +9,26 @@ Marked with local_only to exclude from CI runs.
 
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from keep_github_workflows_active import keep_github_workflow_active as keep_active
 
 
 def _has_github_credentials() -> bool:
-    """Check if GitHub credentials are available and not masked by CI."""
+    """Check if GitHub credentials are available outside CI.
+
+    These integration tests are designed for local runs only.  In CI the
+    secrets may point to a different account or be expired, so we rely on
+    the ``CI`` environment variable (always set by GitHub Actions) to
+    skip them unconditionally.
+    """
+    if os.environ.get("CI"):
+        return False
     try:
-        owner = keep_active.get_owner()
-        token = keep_active.get_github_token()
-        # GitHub Actions masks secrets to '***'; Python 3.14+ rejects that as
-        # an invalid HTTP header value, so treat masked values as missing.
-        if "***" in owner or "***" in token:
-            return False
+        keep_active.get_owner()
+        keep_active.get_github_token()
         return True
     except RuntimeError:
         return False
