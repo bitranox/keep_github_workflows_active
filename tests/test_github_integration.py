@@ -15,10 +15,14 @@ from keep_github_workflows_active import keep_github_workflow_active as keep_act
 
 
 def _has_github_credentials() -> bool:
-    """Check if GitHub credentials are available."""
+    """Check if GitHub credentials are available and not masked by CI."""
     try:
-        keep_active.get_owner()
-        keep_active.get_github_token()
+        owner = keep_active.get_owner()
+        token = keep_active.get_github_token()
+        # GitHub Actions masks secrets to '***'; Python 3.14+ rejects that as
+        # an invalid HTTP header value, so treat masked values as missing.
+        if "***" in (owner, token):
+            return False
         return True
     except RuntimeError:
         return False
@@ -80,10 +84,23 @@ def test_enable_workflow_handles_known_repository() -> None:
     owner = keep_active.get_owner()
     token = keep_active.get_github_token()
 
+    repos = keep_active.get_repositories(owner=owner, github_token=token)
+    repository = None
+    workflow_filename = None
+    for repo in repos:
+        workflows = keep_active.get_workflows(owner=owner, repository=repo, github_token=token)
+        if workflows:
+            repository = repo
+            workflow_filename = workflows[0]
+            break
+
+    if repository is None or workflow_filename is None:
+        pytest.skip("No repository with workflows found for this owner")
+
     result = keep_active.enable_workflow(
         owner=owner,
-        repository="lib_path",
-        workflow_filename="python-package.yml",
+        repository=repository,
+        workflow_filename=workflow_filename,
         github_token=token,
     )
 

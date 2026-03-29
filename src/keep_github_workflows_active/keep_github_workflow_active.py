@@ -493,24 +493,39 @@ def get_repositories(owner: str, github_token: str) -> list[str]:
 
     """
     repositories: list[str] = []
-    url: str | None = f"https://api.github.com/users/{owner}/repos?per_page=100"
     headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github.v3+json"}
+
+    # Try the org endpoint first (returns private repos too), fall back to user endpoint.
+    org_url = f"https://api.github.com/orgs/{owner}/repos?per_page=100"
+    user_url = f"https://api.github.com/users/{owner}/repos?per_page=100"
+    probe = requests.get(org_url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
+    if probe.status_code == 404:
+        url: str | None = user_url
+        probe = None  # Discard the 404 so the loop fetches fresh from user endpoint.
+    else:
+        url: str | None = org_url
 
     while url:
         try:
-            response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
-            response.raise_for_status()
+            # Reuse the probe response for the first org page to avoid a duplicate request.
+            if probe is not None:
+                response = probe
+                probe = None
+                response.raise_for_status()
+            else:
+                response = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
+                response.raise_for_status()
             parsed = GitHubRepositoriesResponse.model_validate(response.json())
             repositories.extend(repo.name for repo in parsed.repositories)
             url = _get_next_page_url(response)
 
         except requests.exceptions.HTTPError as exc:
             error = GitHubErrorResponse.from_response(exc.response)
-            result = f"ERROR reading repositories for user {owner}: {error.message}"
+            result = f"ERROR reading repositories for {owner}: {error.message}"
             logger.error(sanitization.sanitize_message(result))
             raise RuntimeError(result) from exc
 
-    result = f"Found {len(repositories)} repositories for user {owner}"
+    result = f"Found {len(repositories)} repositories for {owner}"
     logger.info(sanitization.sanitize_message(result))
     return repositories
 

@@ -28,14 +28,14 @@ Issues = "https://github.com/bitranox/keep_github_workflows_active/issues"
 dev = [
   "pytest>=9.0.2",
   "pytest-cov>=7.1.0",
-  "ruff>=0.15.7",
+  "ruff>=0.15.8",
   "pyright[nodejs]>=1.1.408",
   "bandit>=1.9.4",
   "build>=1.4.2",
   "twine>=6.2.0",
-  "codecov-cli>=11.2.7",
+  "codecov-cli>=11.2.8",
   "pip-audit>=2.10.0",
-  "textual>=8.1.1",
+  "textual>=8.2.1",
   "import-linter>=2.11",
   "rtoml>=0.13.0"
 ]
