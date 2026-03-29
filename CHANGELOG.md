@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-03-29
+
+### Added
+- Support for GitHub organisations in `get_repositories` (tries `/orgs/` endpoint first, falls back to `/users/`)
+- New CI job to activate workflows and delete old runs for RotekHandelsGmbH organisation
+- Dynamic workflow discovery in integration tests instead of hardcoded repo/workflow names
+
+### Fixed
+- Strip whitespace from config values at lookup time (fixes Python 3.14 `http.client` rejecting header values with trailing newlines)
+- Integration tests now skip unconditionally in CI using `CI` env var detection
+- Fixed masked credential detection to use substring check instead of equality
+
+### Security
+- Cleaned up CVE exclusion list: removed resolved entries (PYSEC-2022-43012, PYSEC-2025-49, CVE-2024-6345, CVE-2026-1703, CVE-2026-26007, CVE-2026-25990, CVE-2025-8869, CVE-2026-25645)
+
 ## [2.1.5] - 2026-03-25
 
 ### Changed

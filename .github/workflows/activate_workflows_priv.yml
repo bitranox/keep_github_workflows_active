@@ -106,7 +106,7 @@ jobs:
   activate-org:
     name: Enable workflows & delete old runs (RotekHandelsGmbH)
     needs: test
-    # if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     env:
       SECRET_GITHUB_TOKEN: ${{ secrets.SECRET_GITHUB_TOKEN2 }}
