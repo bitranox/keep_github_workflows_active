@@ -1,4 +1,4 @@
-name: Activate Workflows
+name: Activate Organisation Workflows
 
 on:
   push:
