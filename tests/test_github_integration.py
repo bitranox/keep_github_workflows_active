@@ -21,7 +21,7 @@ def _has_github_credentials() -> bool:
         token = keep_active.get_github_token()
         # GitHub Actions masks secrets to '***'; Python 3.14+ rejects that as
         # an invalid HTTP header value, so treat masked values as missing.
-        if "***" in (owner, token):
+        if "***" in owner or "***" in token:
             return False
         return True
     except RuntimeError:

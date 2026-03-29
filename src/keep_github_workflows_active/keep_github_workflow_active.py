@@ -336,13 +336,13 @@ def _lookup_config_value(key: str) -> str:
     >>> _ = os.environ.pop("KEEP_GITHUB_WORKFLOWS_ACTIVE_DOTENV_PATH", None)
     """
 
-    env_value = os.environ.get(key)
+    env_value = os.environ.get(key, "").strip()
     if env_value:
         return env_value
 
     for env_file in _candidate_env_files():
         config = _read_env_file(env_file)
-        file_value = config.get_value(key)
+        file_value = (config.get_value(key) or "").strip()
         if file_value:
             return file_value
 
