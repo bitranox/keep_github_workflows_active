@@ -30,11 +30,13 @@ class SkippedWorkflowType(IntEnum):
 
     PAGES_BUILD_DEPLOYMENT = 1
     DEPENDABOT = 2
+    UPDATE_GRAPH = 3
 
 
 SKIPPED_WORKFLOW_PREFIXES: dict[SkippedWorkflowType, str] = {
     SkippedWorkflowType.PAGES_BUILD_DEPLOYMENT: "pages-build-deployment",
     SkippedWorkflowType.DEPENDABOT: "dependabot",
+    SkippedWorkflowType.UPDATE_GRAPH: "update-graph",
 }
 
 
@@ -697,6 +699,8 @@ def enable_workflow(owner: str, repository: str, workflow_filename: str, github_
             result = f"Repository {repository}, workflow {workflow_filename} skipped - those can not be enabled"
         elif skip_reason == SkippedWorkflowType.DEPENDABOT:
             result = f"Repository {repository}, workflow {workflow_filename} skipped - managed by Dependabot"
+        elif skip_reason == SkippedWorkflowType.UPDATE_GRAPH:
+            result = f"Repository {repository}, workflow {workflow_filename} skipped - managed by GitHub dependency graph"
         else:
             response = requests.put(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
             response.raise_for_status()
