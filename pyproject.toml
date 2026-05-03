@@ -4,7 +4,7 @@ version = "2.2.0"
 description = "Template for python apps with registered cli commands"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["rich-click>=1.9.7", "lib_cli_exit_tools>=2.3.0", "requests>=2.33.0", "pydantic>=2.12.5"]
+dependencies = ["rich-click>=1.9.7", "lib_cli_exit_tools>=2.3.1", "requests>=2.33.1", "pydantic>=2.13.3"]
 license = { text = "MIT" }
 authors = [{ name = "bitranox", email = "bitranox@gmail.com" }]
 keywords = ["logging", "rich", "cli", "terminal", "ansi"]
@@ -35,16 +35,16 @@ Issues = "https://github.com/bitranox/keep_github_workflows_active/issues"
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=9.0.2",
+  "pytest>=9.0.3",
   "pytest-cov>=7.1.0",
-  "ruff>=0.15.8",
-  "pyright[nodejs]>=1.1.408",
+  "ruff>=0.15.12",
+  "pyright[nodejs]>=1.1.409",
   "bandit>=1.9.4",
-  "build>=1.4.2",
+  "build>=1.5.0",
   "twine>=6.2.0",
   "codecov-cli>=11.2.8",
   "pip-audit>=2.10.0",
-  "textual>=8.2.1",
+  "textual>=8.2.5",
   "import-linter>=2.11",
   "rtoml>=0.13.0"
 ]
@@ -159,4 +159,5 @@ layers = [
 # CVE-2026-25990: pillow 12.0.0 (transitive dep, fix in 12.1.1)
 # CVE-2025-8869: pip 24.3.1 path traversal (fix in 25.3, system-managed)
 # CVE-2026-1703: pip 24.3.1 (fix in 26.0, system-managed)
-ignore-vulns = ["GHSA-4xh5-x5gv-qwph", "PYSEC-2022-42969", "CVE-2026-4539", "CVE-2026-25990", "CVE-2025-8869", "CVE-2026-1703"]
+# CVE-2026-3219: pip 26.0.1 concatenated tar+ZIP confusion, no fix released yet
+ignore-vulns = ["GHSA-4xh5-x5gv-qwph", "PYSEC-2022-42969", "CVE-2026-4539", "CVE-2026-25990", "CVE-2025-8869", "CVE-2026-1703", "CVE-2026-3219"]
