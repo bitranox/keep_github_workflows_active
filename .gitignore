@@ -179,3 +179,5 @@ poetry.lock
 pdm.lock
 uv.lock
 /.github.bak/
+.claude/
+CLAUDE.md
