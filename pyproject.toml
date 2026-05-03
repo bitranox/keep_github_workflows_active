@@ -1,6 +1,6 @@
 [project]
 name = "keep_github_workflows_active"
-version = "2.2.0"
+version = "2.3.0"
 description = "Template for python apps with registered cli commands"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -91,6 +91,7 @@ markers = [
   "os_posix: test exercises behavior requiring POSIX semantics",
   "os_linux: test exercises Linux-only behavior",
   "local_only: test requires local credentials or resources unavailable in CI",
+  "integration: test exercises external systems (e.g. live GitHub API)",
 ]
 
 [tool.coverage.run]
@@ -153,11 +154,6 @@ layers = [
 
 [tool.pip-audit]
 # Known vulnerabilities to ignore (unfixable or accepted risk)
-# GHSA-4xh5-x5gv-qwph: py library ReDoS via crafted SVN info (no fix available, low risk)
-# PYSEC-2022-42969: alias for GHSA-4xh5-x5gv-qwph
-# CVE-2026-4539: pygments AdlLexer ReDoS, local access only, no fix yet
-# CVE-2026-25990: pillow 12.0.0 (transitive dep, fix in 12.1.1)
-# CVE-2025-8869: pip 24.3.1 path traversal (fix in 25.3, system-managed)
-# CVE-2026-1703: pip 24.3.1 (fix in 26.0, system-managed)
 # CVE-2026-3219: pip 26.0.1 concatenated tar+ZIP confusion, no fix released yet
-ignore-vulns = ["GHSA-4xh5-x5gv-qwph", "PYSEC-2022-42969", "CVE-2026-4539", "CVE-2026-25990", "CVE-2025-8869", "CVE-2026-1703", "CVE-2026-3219"]
+# PYSEC-2022-42969: py 1.11.0 ReDoS via crafted SVN info, no fix available
+ignore-vulns = ["CVE-2026-3219", "PYSEC-2022-42969"]

@@ -34,7 +34,7 @@ def _has_github_credentials() -> bool:
         return False
 
 
-pytestmark = [pytest.mark.local_only]
+pytestmark = [pytest.mark.local_only, pytest.mark.integration]
 
 
 @pytest.mark.skipif(not _has_github_credentials(), reason="GitHub credentials not available")

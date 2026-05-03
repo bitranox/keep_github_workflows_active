@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-05-03
+
+### Added
+- New `SkippedWorkflowType.UPDATE_GRAPH` enum value to skip GitHub-managed `update-graph` workflows during enablement (these can't be enabled via the standard Actions API)
+- New pytest `integration` marker registered in `pyproject.toml`; live-API tests in `tests/test_github_integration.py` now carry both `local_only` and `integration` markers so `make testintegration` collects them
+
+### Changed
+- CI/CD workflow updated: `default_cicd_public.yml` matrix and codecov-action v6
+- `updrootvol` automation cleanup: removed snyk badge from README
+
+### Security
+- Added `CVE-2026-3219` (pip 26.0.1 concatenated tar+ZIP confusion, no fix yet) to pip-audit ignore list
+- Cleaned obsolete entries from pip-audit ignore list (resolved or not flagged): `GHSA-4xh5-x5gv-qwph`, `CVE-2026-4539`, `CVE-2026-25990`, `CVE-2025-8869`, `CVE-2026-1703`
+- Restored `PYSEC-2022-42969` after verifying `py` 1.11.0 is still flagged in the local audit environment
+
 ## [2.2.0] - 2026-03-29
 
 ### Added
