@@ -4,7 +4,7 @@ version = "2.3.0"
 description = "Template for python apps with registered cli commands"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["rich-click>=1.9.7", "lib_cli_exit_tools>=2.3.1", "requests>=2.33.1", "pydantic>=2.13.3"]
+dependencies = ["rich-click>=1.9.7", "lib_cli_exit_tools>=2.3.1", "requests>=2.33.1", "pydantic>=2.13.4"]
 license = { text = "MIT" }
 authors = [{ name = "bitranox", email = "bitranox@gmail.com" }]
 keywords = ["logging", "rich", "cli", "terminal", "ansi"]
@@ -155,5 +155,8 @@ layers = [
 [tool.pip-audit]
 # Known vulnerabilities to ignore (unfixable or accepted risk)
 # CVE-2026-3219: pip 26.0.1 concatenated tar+ZIP confusion, no fix released yet
+# CVE-2026-6357: pip 26.0.1 self-update wheel-import ordering (fix in 26.1, system-managed)
 # PYSEC-2022-42969: py 1.11.0 ReDoS via crafted SVN info, no fix available
-ignore-vulns = ["CVE-2026-3219", "PYSEC-2022-42969"]
+# CVE-2026-42215/CVE-2026-42284/CVE-2026-44244: gitpython 3.1.45 (local bmk toolchain dep, fixes in 3.1.47/3.1.49)
+# CVE-2026-42561: python-multipart 0.0.26 (local bmk toolchain dep, fix in 0.0.27)
+ignore-vulns = ["CVE-2026-3219", "CVE-2026-6357", "PYSEC-2022-42969", "CVE-2026-42215", "CVE-2026-42284", "CVE-2026-44244", "CVE-2026-42561"]
