@@ -495,7 +495,7 @@ def get_repositories(owner: str, github_token: str) -> list[str]:
 
     """
     repositories: list[str] = []
-    headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github.v3+json"}
+    headers: dict[str, str | bytes] = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github.v3+json"}
 
     # Try the org endpoint first (returns private repos too), fall back to user endpoint.
     org_url = f"https://api.github.com/orgs/{owner}/repos?per_page=100"
@@ -556,7 +556,7 @@ def get_workflows(owner: str, repository: str, github_token: str) -> list[str]:
     """
     workflows: list[str] = []
     url: str | None = f"https://api.github.com/repos/{owner}/{repository}/actions/workflows?per_page=100"
-    headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github.v3+json"}
+    headers: dict[str, str | bytes] = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github.v3+json"}
 
     while url:
         try:
@@ -599,7 +599,7 @@ def get_workflow_runs(owner: str, repository: str, github_token: str) -> list[in
 
     """
     url: str | None = f"https://api.github.com/repos/{owner}/{repository}/actions/runs?per_page=100"
-    headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github.v3+json"}
+    headers: dict[str, str | bytes] = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github.v3+json"}
 
     workflow_run_ids: list[int] = []
     while url:
@@ -635,7 +635,7 @@ def delete_workflow_run(owner: str, repository: str, github_token: str, run_id_t
     :return: None
     """
     url = f"https://api.github.com/repos/{owner}/{repository}/actions/runs/{run_id_to_delete}"
-    headers = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github.v3+json"}
+    headers: dict[str, str | bytes] = {"Authorization": f"Bearer {github_token}", "Accept": "application/vnd.github.v3+json"}
 
     try:
         response = requests.delete(url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
@@ -690,7 +690,7 @@ def enable_workflow(owner: str, repository: str, workflow_filename: str, github_
 
     """
     url = f"https://api.github.com/repos/{owner}/{repository}/actions/workflows/{workflow_filename}/enable"
-    headers = {"Accept": "application/vnd.github.v3+json", "Authorization": f"Bearer {github_token}"}
+    headers: dict[str, str | bytes] = {"Accept": "application/vnd.github.v3+json", "Authorization": f"Bearer {github_token}"}
 
     response: requests.Response | None = None
     try:
