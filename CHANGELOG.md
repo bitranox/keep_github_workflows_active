@@ -8,7 +8,7 @@
 - Annotated `headers` dicts in `keep_github_workflow_active.py` as `dict[str, str | bytes]` so pyright accepts them as `requests` `HeadersType` (which is `MutableMapping[str, str | bytes]` and invariant on the value type). Restores green CI under types-requests 2.34.
 
 ### Security
-- Refreshed pip-audit ignore list: removed resolved entries (`CVE-2026-3219`, `CVE-2026-6357` for pip; `CVE-2026-42215`, `CVE-2026-42284`, `CVE-2026-44244` for gitpython; `CVE-2026-42561` for python-multipart); added `CVE-2026-44405` (paramiko, no fix yet) and `CVE-2026-44431`/`CVE-2026-44432` (urllib3 2.6.3 in the local bmk toolchain, fixed in 2.7.0)
+- Refreshed pip-audit ignore list: removed resolved entries for gitpython (`CVE-2026-42215`, `CVE-2026-42284`, `CVE-2026-44244`) and python-multipart (`CVE-2026-42561`); kept the pip CVEs (`CVE-2026-3219`, `CVE-2026-6357`) since the CI runner still ships pip 26.0.1; added `CVE-2026-44405` (paramiko, no fix yet) and `CVE-2026-44431`/`CVE-2026-44432` (urllib3 2.6.3 in the local bmk toolchain, fixed in 2.7.0)
 
 ## [2.3.0] - 2026-05-03
 

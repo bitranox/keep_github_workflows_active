@@ -154,7 +154,9 @@ layers = [
 
 [tool.pip-audit]
 # Known vulnerabilities to ignore (unfixable or accepted risk)
+# CVE-2026-3219: pip 26.0.1 concatenated tar+ZIP confusion, no fix released yet (CI runner ships 26.0.1)
+# CVE-2026-6357: pip 26.0.1 self-update wheel-import ordering, fix in 26.1 (CI runner ships 26.0.1)
 # PYSEC-2022-42969: py 1.11.0 ReDoS via crafted SVN info, no fix available
 # CVE-2026-44405: paramiko 4.0.0 rsakey.py allows SHA-1 (local bmk toolchain dep, no fix released yet)
 # CVE-2026-44431/CVE-2026-44432: urllib3 2.6.3 (local bmk toolchain dep, fix in 2.7.0)
-ignore-vulns = ["PYSEC-2022-42969", "CVE-2026-44405", "CVE-2026-44431", "CVE-2026-44432"]
+ignore-vulns = ["CVE-2026-3219", "CVE-2026-6357", "PYSEC-2022-42969", "CVE-2026-44405", "CVE-2026-44431", "CVE-2026-44432"]
