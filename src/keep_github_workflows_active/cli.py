@@ -44,6 +44,7 @@ from dataclasses import dataclass
 from typing import Final, NamedTuple
 
 import rich_click as click
+from .typed_click import option, version_option
 
 import lib_cli_exit_tools
 from click.core import ParameterSource
@@ -397,12 +398,12 @@ def _run_cli_via_exit_tools(
     context_settings=CLICK_CONTEXT_SETTINGS,
     invoke_without_command=True,
 )
-@click.version_option(
+@version_option(
     version=__init__conf__.version,
     prog_name=__init__conf__.shell_command,
     message=f"{__init__conf__.shell_command} version {__init__conf__.version}",
 )
-@click.option(
+@option(
     "--traceback/--no-traceback",
     is_flag=True,
     default=False,
@@ -489,12 +490,12 @@ def cli_fail() -> None:
 
 
 @cli.command("enable-all-workflows", context_settings=CLICK_CONTEXT_SETTINGS)
-@click.option(
+@option(
     "--owner",
     metavar="OWNER",
     help="GitHub username owning the repositories (defaults to environment/.env)",
 )
-@click.option(
+@option(
     "--token",
     metavar="TOKEN",
     help="Fine-grained personal access token (defaults to environment/.env)",
@@ -508,17 +509,17 @@ def cli_enable_all_workflows(owner: str | None, token: str | None) -> None:
 
 
 @cli.command("delete-old-workflow-runs", context_settings=CLICK_CONTEXT_SETTINGS)
-@click.option(
+@option(
     "--owner",
     metavar="OWNER",
     help="GitHub username owning the repositories (defaults to environment/.env)",
 )
-@click.option(
+@option(
     "--token",
     metavar="TOKEN",
     help="Fine-grained personal access token (defaults to environment/.env)",
 )
-@click.option(
+@option(
     "--keep",
     metavar="COUNT",
     type=int,
