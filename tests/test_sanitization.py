@@ -76,6 +76,24 @@ def test_when_message_contains_token_pattern_the_secret_is_scrubbed() -> None:
 
 
 @pytest.mark.os_agnostic
+def test_when_message_contains_dotted_ghs_jwt_token_whole_secret_is_redacted() -> None:
+    """Installation tokens now arrive as long JWT-format ``ghs_`` strings with dots.
+
+    The redaction must consume the entire token so no JWT segment (the payload or
+    signature, which follow a ``.``) leaks into logs.
+    """
+    segment = "abcDEF012-_" * 16  # base64url body incl. '-' and '_'
+    token = "ghs_" + ".".join([segment, segment, segment])  # >520 chars, two dots
+
+    sanitized = sanitization.sanitize_message(f"GitHub rejected token={token} for installation")
+
+    assert "ghs_" not in sanitized
+    assert segment not in sanitized
+    assert sanitized.count("[REDACTED]") == 1
+    assert sanitized == "GitHub rejected token=[REDACTED] for installation"
+
+
+@pytest.mark.os_agnostic
 def test_when_message_contains_base64_token_the_secret_is_redacted() -> None:
     message = "Upload token: dGhpc2lzYXZlcnlsb25nYmFzZTY0ZW5jb2RlZHRva2VudGhhdHNob3VsZGJlcmVkYWN0ZWQ="
 

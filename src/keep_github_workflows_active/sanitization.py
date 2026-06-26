@@ -64,11 +64,17 @@ SENSITIVE_KEYS = frozenset(
 REDACTED_PLACEHOLDER = "[REDACTED]"
 
 #: Pattern matching token-like strings:
-#: - GitHub tokens (ghp_, gho_, ghs_, etc. followed by alphanumerics)
+#: - GitHub tokens (ghp_, gho_, ghs_, etc.). Installation tokens (ghs_) are now long
+#:   JWT-format strings (~520 chars) that contain dots, dashes and underscores, so the
+#:   token body allows ".-_" and carries no trailing word boundary (a token may end in
+#:   "-", which is not a word char and would otherwise truncate the match and leak the
+#:   remainder of the JWT).
 #: - Long hex strings (40+ chars)
 #: - Base64-like sequences (40+ chars)
 TOKEN_PATTERN = re.compile(
-    r"\b(gh[a-z]_[A-Za-z0-9]{36,}|[a-f0-9]{40,}|[A-Za-z0-9+/]{40,}={0,2})\b",
+    r"\bgh[a-z]_[A-Za-z0-9._-]{36,}"
+    r"|\b[a-f0-9]{40,}\b"
+    r"|\b[A-Za-z0-9+/]{40,}={0,2}\b",
     re.IGNORECASE,
 )
 
