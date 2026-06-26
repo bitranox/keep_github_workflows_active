@@ -181,3 +181,6 @@ uv.lock
 /.github.bak/
 .claude/
 CLAUDE.md
+
+# Local, per-developer settings (Claude Code etc.) - never commit
+*.local.json
