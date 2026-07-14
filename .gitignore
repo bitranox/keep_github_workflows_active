@@ -184,3 +184,7 @@ CLAUDE.md
 
 # Local, per-developer settings (Claude Code etc.) - never commit
 *.local.json
+
+# Python virtual environments (managed by bmk)
+.venv-win/
+.venv-bmk/
