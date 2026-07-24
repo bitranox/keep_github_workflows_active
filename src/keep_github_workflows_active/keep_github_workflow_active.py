@@ -16,6 +16,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from . import sanitization
 
 REQUEST_TIMEOUT_SECONDS = 30
+#: GitHub API status code returned when the org endpoint has no matching organization.
+HTTP_STATUS_NOT_FOUND = 404
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +68,7 @@ class GitHubRepositoriesResponse(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def _wrap_list_response(cls, data: Any) -> dict[str, Any]:  # noqa: ANN401
+    def _wrap_list_response(cls, data: Any) -> dict[str, Any]:
         """Wrap list responses into the expected dict structure."""
         if isinstance(data, list):
             return {"repositories": data}
@@ -128,7 +130,7 @@ class GitHubErrorResponse(BaseModel):
     message: str = "Error"
 
     @classmethod
-    def from_response(cls, response: requests.Response | None) -> "GitHubErrorResponse":
+    def from_response(cls, response: requests.Response | None) -> GitHubErrorResponse:
         """Parse error from response, handling various failure modes."""
         if response is None:
             return cls()
@@ -148,7 +150,7 @@ class PaginationLink(BaseModel):
     url: str = ""
 
     @classmethod
-    def from_link_dict(cls, link_data: dict[str, str] | None) -> "PaginationLink | None":
+    def from_link_dict(cls, link_data: dict[str, str] | None) -> PaginationLink | None:
         """Parse pagination link from requests library link dict.
 
         Parameters
@@ -367,12 +369,12 @@ def enable_all_workflows(owner: str, github_token: str) -> None:
     Activating ...
 
     """
-    print(f"Activating and maintaining all workflows for owner {owner}:")
+    sys.stdout.write(f"Activating and maintaining all workflows for owner {owner}:\n")
     repositories = get_repositories(owner=owner, github_token=github_token)
     for repository in repositories:
         workflows = get_workflows(owner=owner, repository=repository, github_token=github_token)
         for workflow_filename in workflows:
-            print(f"activate workflow {repository}/{workflow_filename}")
+            sys.stdout.write(f"activate workflow {repository}/{workflow_filename}\n")
             enable_workflow(owner=owner, repository=repository, workflow_filename=workflow_filename, github_token=github_token)
 
 
@@ -394,8 +396,9 @@ def delete_old_workflow_runs(owner: str, github_token: str, number_of_workflow_r
 
 
     """
-    print(
-        f"Removing outdated workflow executions for owner {owner}, while retaining a maximum of {number_of_workflow_runs_to_keep} workflow runs per repository:"
+    sys.stdout.write(
+        f"Removing outdated workflow executions for owner {owner}, "
+        f"while retaining a maximum of {number_of_workflow_runs_to_keep} workflow runs per repository:\n"
     )
     l_repositories = get_repositories(owner=owner, github_token=github_token)
     for repository in l_repositories:
@@ -408,7 +411,7 @@ def delete_old_workflow_runs(owner: str, github_token: str, number_of_workflow_r
             )
         )
         for run_id_to_delete in workflow_run_ids_to_delete:
-            print(f"remove workflow run {repository}/{run_id_to_delete}")
+            sys.stdout.write(f"remove workflow run {repository}/{run_id_to_delete}\n")
             delete_workflow_run(owner=owner, repository=repository, github_token=github_token, run_id_to_delete=run_id_to_delete)
 
 
@@ -501,7 +504,7 @@ def get_repositories(owner: str, github_token: str) -> list[str]:
     org_url = f"https://api.github.com/orgs/{owner}/repos?per_page=100"
     user_url = f"https://api.github.com/users/{owner}/repos?per_page=100"
     probe = requests.get(org_url, headers=headers, timeout=REQUEST_TIMEOUT_SECONDS)
-    if probe.status_code == 404:
+    if probe.status_code == HTTP_STATUS_NOT_FOUND:
         url: str | None = user_url
         probe = None  # Discard the 404 so the loop fetches fresh from user endpoint.
     else:
@@ -730,4 +733,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    print("this is a library only, the executable is named 'keep_github_workflows_active_cli.py'", file=sys.stderr)
+    sys.stderr.write("this is a library only, the executable is named 'keep_github_workflows_active_cli.py'\n")

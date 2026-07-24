@@ -19,12 +19,14 @@ present authoritative project information without invoking packaging APIs.
 
 from __future__ import annotations
 
+import sys
+
 #: Distribution name declared in ``pyproject.toml``.
 name = "keep_github_workflows_active"
 #: Human-readable summary shown in CLI help output.
 title = "Template for python apps with registered cli commands"
 #: Current release version pulled from ``pyproject.toml`` by automation.
-version = "2.3.2"
+version = "2.3.3"
 #: Repository homepage presented to users.
 homepage = "https://github.com/bitranox/keep_github_workflows_active"
 #: Author attribution surfaced in CLI output.
@@ -71,4 +73,4 @@ def print_info() -> None:
     pad = max(len(label) for label, _ in fields)
     lines = [f"Info for {name}:", ""]
     lines.extend(f"    {label.ljust(pad)} = {value}" for label, value in fields)
-    print("\n".join(lines))
+    sys.stdout.write("\n".join(lines) + "\n")

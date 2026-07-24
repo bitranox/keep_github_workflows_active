@@ -8,10 +8,10 @@ functions returning sanitized copies without mutating inputs.
 
 Contents
 --------
-* :func:`sanitize_headers` – redact Authorization and authentication headers.
-* :func:`sanitize_message` – redact token-like patterns from text.
-* :func:`sanitize_dict` – recursively sanitize dictionary values.
-* :func:`sanitize_for_logging` – convenience wrapper for common logging scenarios.
+* :func:`sanitize_headers` - redact Authorization and authentication headers.
+* :func:`sanitize_message` - redact token-like patterns from text.
+* :func:`sanitize_dict` - recursively sanitize dictionary values.
+* :func:`sanitize_for_logging` - convenience wrapper for common logging scenarios.
 
 System Role
 -----------
@@ -23,8 +23,9 @@ ensure credentials never leak into log files or monitoring systems.
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from collections.abc import Mapping as MappingABC
-from typing import Any, Mapping
+from typing import Any
 
 #: HTTP header names that contain sensitive authentication data.
 SENSITIVE_HEADERS = frozenset(
@@ -262,7 +263,7 @@ def _is_sensitive_key(name: str) -> bool:
     return name.lower() in SENSITIVE_KEYS or name.lower() in SENSITIVE_HEADERS
 
 
-def _sanitize_dict_value(key: str, value: Any) -> Any:  # noqa: ANN401
+def _sanitize_dict_value(key: str, value: Any) -> Any:
     """Return sanitized value for dictionary entry.
 
     Parameters
@@ -333,7 +334,7 @@ def sanitize_dict(data: Mapping[str, Any]) -> dict[str, Any]:
     return {key: _sanitize_dict_value(key, value) for key, value in data.items()}
 
 
-def sanitize_for_logging(value: Any) -> Any:  # noqa: ANN401
+def sanitize_for_logging(value: Any) -> Any:
     """Return sanitized representation suitable for logging.
 
     Why
@@ -374,12 +375,12 @@ def sanitize_for_logging(value: Any) -> Any:  # noqa: ANN401
 
 
 __all__ = [
+    "REDACTED_PLACEHOLDER",
     "SENSITIVE_HEADERS",
     "SENSITIVE_KEYS",
-    "REDACTED_PLACEHOLDER",
     "TOKEN_PATTERN",
-    "sanitize_headers",
-    "sanitize_message",
     "sanitize_dict",
     "sanitize_for_logging",
+    "sanitize_headers",
+    "sanitize_message",
 ]

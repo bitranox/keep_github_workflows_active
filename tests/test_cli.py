@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from collections.abc import Callable, Sequence
-from typing import Any
-
-import pytest
-from click.testing import CliRunner, Result
+from typing import TYPE_CHECKING, Any
 
 import lib_cli_exit_tools
+import pytest
 
-from keep_github_workflows_active import cli as cli_mod
 from keep_github_workflows_active import __init__conf__
+from keep_github_workflows_active import cli as cli_mod
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
+    from click.testing import CliRunner, Result
 
 
 @dataclass(slots=True)
@@ -85,7 +87,7 @@ def test_when_we_snapshot_traceback_the_initial_state_is_quiet(isolated_tracebac
 
 @pytest.mark.os_agnostic
 def test_when_we_enable_traceback_the_config_sings_true(isolated_traceback_config: None) -> None:
-    cli_mod.apply_traceback_preferences(True)
+    cli_mod.apply_traceback_preferences(enabled=True)
 
     assert lib_cli_exit_tools.config.traceback is True
     assert lib_cli_exit_tools.config.traceback_force_color is True
@@ -94,7 +96,7 @@ def test_when_we_enable_traceback_the_config_sings_true(isolated_traceback_confi
 @pytest.mark.os_agnostic
 def test_when_we_restore_traceback_the_config_whispers_false(isolated_traceback_config: None) -> None:
     previous = cli_mod.snapshot_traceback_state()
-    cli_mod.apply_traceback_preferences(True)
+    cli_mod.apply_traceback_preferences(enabled=True)
 
     cli_mod.restore_traceback_state(previous)
 
@@ -339,7 +341,7 @@ def test_when_restore_is_disabled_the_traceback_choice_remains(
     isolated_traceback_config: None,
     preserve_traceback_state: None,
 ) -> None:
-    cli_mod.apply_traceback_preferences(False)
+    cli_mod.apply_traceback_preferences(enabled=False)
 
     cli_mod.main(["--traceback", "hello"], restore_traceback=False)
 

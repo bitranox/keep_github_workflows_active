@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [2.3.3] 2026-07-24
+
+### Changed
+- Added the curated bitranox `[tool.ruff.lint].select` (pycodestyle/pyflakes/isort/bugbear/pylint/bandit/etc.) plus a Pydantic `flake8-type-checking.runtime-evaluated-base-classes` entry; ruff 0.16's ~920-rule default (no explicit `select`) was about to reflood CI with unrelated rule families.
+- Made internal traceback-preference helpers (`apply_traceback_preferences`, `_announce_traceback_choice`, `_traceback_limit`, `_restore_when_requested`) and the `cli` root command keyword-only for their boolean parameters (PLR0917/FBT001); updated every call site and doctest.
+- Replaced `print()` calls in `__init__conf__.print_info` and `keep_github_workflow_active.py` (workflow activation/removal progress messages) with `sys.stdout.write`/`sys.stderr.write` (T201).
+- Replaced the ASCII en-dash (`–`) with a plain hyphen across module docstrings (RUF002).
+- Named the GitHub API "not found" status code as `HTTP_STATUS_NOT_FOUND` instead of the bare `404` (PLR2004).
+
+### Fixed
+- CI: `make test` was red under the latest `ruff` (0.16 default rule explosion on a no-`select` repo); the fixes above make it pass again.
+
 ## [2.3.2] 2026-06-14
 
 ### Changed

@@ -8,11 +8,11 @@ swap in richer logging logic later without touching the transport surface.
 
 Contents
 --------
-* :func:`emit_greeting` – success-path helper that writes the canonical scaffold
+* :func:`emit_greeting` - success-path helper that writes the canonical scaffold
   message.
-* :func:`raise_intentional_failure` – deterministic error hook used by tests and
+* :func:`raise_intentional_failure` - deterministic error hook used by tests and
   CLI flows to validate traceback handling.
-* :func:`noop_main` – placeholder entry used when callers expect a ``main``
+* :func:`noop_main` - placeholder entry used when callers expect a ``main``
   callable despite the domain layer being stubbed today.
 
 System Role
@@ -24,10 +24,8 @@ features evolve.
 
 from __future__ import annotations
 
-from typing import TextIO
-
 import sys
-
+from typing import TextIO
 
 CANONICAL_GREETING = "Hello World"
 
@@ -140,6 +138,6 @@ def noop_main() -> None:
 __all__ = [
     "CANONICAL_GREETING",
     "emit_greeting",
-    "raise_intentional_failure",
     "noop_main",
+    "raise_intentional_failure",
 ]

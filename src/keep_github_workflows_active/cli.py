@@ -10,23 +10,23 @@ aligned with the Clean Code rules captured in
 
 Contents
 --------
-* :data:`CLICK_CONTEXT_SETTINGS` – shared Click settings ensuring consistent
+* :data:`CLICK_CONTEXT_SETTINGS` - shared Click settings ensuring consistent
   ``--help`` behavior across commands.
-* :func:`apply_traceback_preferences` – helper that synchronises the shared
+* :func:`apply_traceback_preferences` - helper that synchronises the shared
   traceback configuration flags.
-* :func:`snapshot_traceback_state` / :func:`restore_traceback_state` – utilities
+* :func:`snapshot_traceback_state` / :func:`restore_traceback_state` - utilities
   for preserving and reapplying the global traceback preference.
-* :func:`cli` – root command group wiring the global options.
-* :func:`cli_main` – default action when no subcommand is provided.
-* :func:`cli_info`, :func:`cli_hello`, :func:`cli_fail` – subcommands covering
+* :func:`cli` - root command group wiring the global options.
+* :func:`cli_main` - default action when no subcommand is provided.
+* :func:`cli_info`, :func:`cli_hello`, :func:`cli_fail` - subcommands covering
   metadata printing, success path, and failure path.
-* :func:`_record_traceback_choice`, :func:`_announce_traceback_choice` – persist
+* :func:`_record_traceback_choice`, :func:`_announce_traceback_choice` - persist
   traceback preferences across context and shared tooling.
 * :func:`_invoke_cli`, :func:`_current_traceback_mode`, :func:`_traceback_limit`,
-  :func:`_print_exception`, :func:`_run_cli_via_exit_tools` – isolate the error
+  :func:`_print_exception`, :func:`_run_cli_via_exit_tools` - isolate the error
   handling and delegation path.
-* :func:`_restore_when_requested` – restores tracebacks when ``main`` finishes.
-* :func:`main` – composition helper delegating to ``lib_cli_exit_tools`` while
+* :func:`_restore_when_requested` - restores tracebacks when ``main`` finishes.
+* :func:`main` - composition helper delegating to ``lib_cli_exit_tools`` while
   honouring the shared traceback preferences.
 
 System Role
@@ -39,20 +39,20 @@ behaviour remains consistent regardless of entry point.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Final, NamedTuple
-
-import rich_click as click
-from .typed_click import option, version_option
+from typing import TYPE_CHECKING, Final, NamedTuple
 
 import lib_cli_exit_tools
+import rich_click as click
 from click.core import ParameterSource
 
 from . import __init__conf__
 from . import keep_github_workflow_active as keep_active
 from .behaviors import emit_greeting, noop_main, raise_intentional_failure
+from .typed_click import option, version_option
 
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 # =============================================================================
 # Dataclass for typed Click context object
@@ -95,7 +95,7 @@ def _fallback_token(token: str | None) -> str:
         raise click.ClickException(str(exc)) from exc
 
 
-def apply_traceback_preferences(enabled: bool) -> None:
+def apply_traceback_preferences(*, enabled: bool) -> None:
     """Synchronise shared traceback flags with the requested preference.
 
     Why
@@ -112,7 +112,7 @@ def apply_traceback_preferences(enabled: bool) -> None:
 
     Examples
     --------
-    >>> apply_traceback_preferences(True)
+    >>> apply_traceback_preferences(enabled=True)
     >>> bool(lib_cli_exit_tools.config.traceback)
     True
     >>> bool(lib_cli_exit_tools.config.traceback_force_color)
@@ -155,7 +155,7 @@ def restore_traceback_state(state: TracebackState) -> None:
     Examples
     --------
     >>> prev = snapshot_traceback_state()
-    >>> apply_traceback_preferences(True)
+    >>> apply_traceback_preferences(enabled=True)
     >>> restore_traceback_state(prev)
     >>> snapshot_traceback_state() == prev
     True
@@ -192,7 +192,7 @@ def _record_traceback_choice(ctx: click.Context, *, enabled: bool) -> None:
     ctx.obj.traceback = enabled
 
 
-def _announce_traceback_choice(enabled: bool) -> None:
+def _announce_traceback_choice(*, enabled: bool) -> None:
     """Keep ``lib_cli_exit_tools`` in sync with the selected traceback mode.
 
     Why
@@ -208,7 +208,7 @@ def _announce_traceback_choice(enabled: bool) -> None:
         Mutates ``lib_cli_exit_tools.config``.
     """
 
-    apply_traceback_preferences(enabled)
+    apply_traceback_preferences(enabled=enabled)
 
 
 def _no_subcommand_requested(ctx: click.Context) -> bool:
@@ -270,7 +270,7 @@ def _current_traceback_mode() -> bool:
     return bool(getattr(lib_cli_exit_tools.config, "traceback", False))
 
 
-def _traceback_limit(tracebacks_enabled: bool, *, summary_limit: int, verbose_limit: int) -> int:
+def _traceback_limit(*, tracebacks_enabled: bool, summary_limit: int, verbose_limit: int) -> int:
     """Return the character budget that matches the current traceback mode.
 
     Why
@@ -379,14 +379,14 @@ def _run_cli_via_exit_tools(
 
     try:
         return _invoke_cli(argv)
-    except BaseException as exc:  # noqa: BLE001 - handled by shared printers
+    except BaseException as exc:
         tracebacks_enabled = _current_traceback_mode()
-        apply_traceback_preferences(tracebacks_enabled)
+        apply_traceback_preferences(enabled=tracebacks_enabled)
         return _print_exception(
             exc,
             tracebacks_enabled=tracebacks_enabled,
             length_limit=_traceback_limit(
-                tracebacks_enabled,
+                tracebacks_enabled=tracebacks_enabled,
                 summary_limit=summary_limit,
                 verbose_limit=verbose_limit,
             ),
@@ -410,7 +410,7 @@ def _run_cli_via_exit_tools(
     help="Show full Python traceback on errors",
 )
 @click.pass_context
-def cli(ctx: click.Context, traceback: bool) -> None:
+def cli(ctx: click.Context, *, traceback: bool) -> None:
     """Root command storing global flags and syncing shared traceback state.
 
     Why
@@ -441,7 +441,7 @@ def cli(ctx: click.Context, traceback: bool) -> None:
     """
 
     _record_traceback_choice(ctx, enabled=traceback)
-    _announce_traceback_choice(traceback)
+    _announce_traceback_choice(enabled=traceback)
     if _no_subcommand_requested(ctx):
         if _traceback_option_requested(ctx):
             cli_main()
@@ -579,10 +579,10 @@ def main(
             verbose_limit=verbose_limit,
         )
     finally:
-        _restore_when_requested(previous_state, restore_traceback)
+        _restore_when_requested(previous_state, should_restore=restore_traceback)
 
 
-def _restore_when_requested(state: TracebackState, should_restore: bool) -> None:
+def _restore_when_requested(state: TracebackState, *, should_restore: bool) -> None:
     """Restore the prior traceback configuration when requested.
 
     Why

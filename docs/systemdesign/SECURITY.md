@@ -36,10 +36,7 @@ Redacts authentication headers while preserving safe metadata.
 
 **Example**:
 ```python
-headers = {
-    "Authorization": "Bearer ghp_ExampleToken123456",
-    "Accept": "application/json"
-}
+headers = {"Authorization": "Bearer ghp_ExampleToken123456", "Accept": "application/json"}
 sanitized = sanitize_headers(headers)
 # Result: {"Authorization": "[REDACTED]", "Accept": "application/json"}
 ```
@@ -72,11 +69,7 @@ Recursively sanitizes dictionary structures, protecting both sensitive keys and 
 
 **Example**:
 ```python
-data = {
-    "user": "alice",
-    "token": "ghp_secret123",
-    "meta": {"api_key": "xyz789"}
-}
+data = {"user": "alice", "token": "ghp_secret123", "meta": {"api_key": "xyz789"}}
 sanitized = sanitize_dict(data)
 # Result: {
 #     "user": "alice",
@@ -99,9 +92,7 @@ logger.info(f"Found {count} repositories for user {owner}")
 logger.error(f"ERROR: {error_message}")
 
 # After (safe)
-logger.info(sanitization.sanitize_message(
-    f"Found {count} repositories for user {owner}"
-))
+logger.info(sanitization.sanitize_message(f"Found {count} repositories for user {owner}"))
 logger.error(sanitization.sanitize_message(f"ERROR: {error_message}"))
 ```
 
@@ -145,27 +136,41 @@ logger.error(sanitization.sanitize_message(f"ERROR: {error_message}"))
 ### Sensitive Headers (Frozenset)
 
 ```python
-SENSITIVE_HEADERS = frozenset([
-    "authorization",
-    "x-api-key",
-    "api-key",
-    "x-auth-token",
-    "auth-token",
-    "cookie",
-    "set-cookie",
-])
+SENSITIVE_HEADERS = frozenset(
+    [
+        "authorization",
+        "x-api-key",
+        "api-key",
+        "x-auth-token",
+        "auth-token",
+        "cookie",
+        "set-cookie",
+    ]
+)
 ```
 
 ### Sensitive Keys (Frozenset)
 
 ```python
-SENSITIVE_KEYS = frozenset([
-    "authorization", "api_key", "api-key", "apikey",
-    "token", "auth_token", "auth-token",
-    "access_token", "access-token",
-    "secret", "password", "passwd", "pwd",
-    "credential", "credentials",
-])
+SENSITIVE_KEYS = frozenset(
+    [
+        "authorization",
+        "api_key",
+        "api-key",
+        "apikey",
+        "token",
+        "auth_token",
+        "auth-token",
+        "access_token",
+        "access-token",
+        "secret",
+        "password",
+        "passwd",
+        "pwd",
+        "credential",
+        "credentials",
+    ]
+)
 ```
 
 ### Token Pattern (Regex)
