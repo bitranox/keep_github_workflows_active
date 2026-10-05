@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [2.3.4] 2026-10-05 19:35:58
+
+### Fixed
+- `python -m keep_github_workflows_active` now runs `cli.main()` like the console scripts; a usage error (bad flag, unknown command) exits 2 instead of 1.
+
+### Changed
+- Raised dependency and dev tool floors to their current releases.
+
 ## [2.3.3] 2026-07-24
 
 ### Changed

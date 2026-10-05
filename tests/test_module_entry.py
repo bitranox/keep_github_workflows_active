@@ -2,140 +2,44 @@
 
 from __future__ import annotations
 
+import importlib
 import runpy
 import sys
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, TextIO
+from typing import TYPE_CHECKING
 
 import lib_cli_exit_tools
 import pytest
 
-from keep_github_workflows_active import __init__conf__
 from keep_github_workflows_active import cli as cli_mod
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-@dataclass(slots=True)
-class PrintedTraceback:
-    """Capture of a traceback rendering invoked by ``lib_cli_exit_tools``.
-
-    Attributes
-    ----------
-    trace_back:
-        ``True`` when verbose tracebacks were printed.
-    length_limit:
-        Character budget applied to the output.
-    stream_present:
-        ``True`` when a stream object was provided to the printer.
-    """
-
-    trace_back: bool
-    length_limit: int
-    stream_present: bool
-
-
-def _record_print_message(target: list[PrintedTraceback]) -> Callable[..., None]:
-    """Return an exception printer that records each invocation.
-
-    Why
-        Module-entry tests assert that ``lib_cli_exit_tools`` prints the correct
-        style of traceback; capturing the parameters lets the test assert intent
-        without examining stderr.
-
-    Inputs
-        target:
-            Mutable list collecting :class:`PrintedTraceback` entries.
-
-    Outputs
-        Callable[..., None]:
-            Replacement printer used during the test.
-    """
-
-    def _printer(
-        *,
-        trace_back: bool = False,
-        length_limit: int = 500,
-        stream: TextIO | None = None,
-    ) -> None:
-        target.append(
-            PrintedTraceback(
-                trace_back=trace_back,
-                length_limit=length_limit,
-                stream_present=stream is not None,
-            )
-        )
-
-    return _printer
-
-
 @pytest.mark.os_agnostic
-def test_when_module_entry_returns_zero_the_story_matches_cli(monkeypatch: pytest.MonkeyPatch) -> None:
-    ledger: dict[str, object] = {}
-
-    monkeypatch.setattr(sys, "argv", ["keep_github_workflows_active"], raising=False)
-
-    def fake_run_cli(
-        command: object,
-        argv: list[str] | None = None,
-        *,
-        prog_name: str | None = None,
-        **_: object,
-    ) -> int:
-        ledger["command"] = command
-        ledger["argv"] = argv
-        ledger["prog_name"] = prog_name
-        return 0
-
-    monkeypatch.setattr(lib_cli_exit_tools, "run_cli", fake_run_cli)
-    monkeypatch.setattr("lib_cli_exit_tools.application.runner.run_cli", fake_run_cli)
+@pytest.mark.parametrize(
+    "argv",
+    [["--bad-flag"], ["no-such-command"], ["info", "--bad-flag"], ["--help"], ["info"]],
+    ids=["bad-flag", "unknown-command", "bad-subcommand-flag", "help", "info"],
+)
+def test_module_entry_exits_with_the_code_the_console_script_gives(monkeypatch: pytest.MonkeyPatch, isolated_traceback_config: None, argv: list[str]) -> None:
+    script_code = cli_mod.main(argv)
+    monkeypatch.setattr(sys, "argv", ["keep_github_workflows_active", *argv])
 
     with pytest.raises(SystemExit) as exc:
         runpy.run_module("keep_github_workflows_active.__main__", run_name="__main__")
 
-    assert exc.value.code == 0
-    assert ledger["command"] is cli_mod.cli
-    assert ledger["prog_name"] == __init__conf__.shell_command
+    assert exc.value.code == script_code
 
 
 @pytest.mark.os_agnostic
-def test_when_module_entry_raises_the_exit_helpers_format_the_song(monkeypatch: pytest.MonkeyPatch) -> None:
-    printed: list[PrintedTraceback] = []
-    codes: list[str] = []
-    monkeypatch.setattr(sys, "argv", ["keep_github_workflows_active"], raising=False)
-    monkeypatch.setattr(lib_cli_exit_tools.config, "traceback", False, raising=False)
-    monkeypatch.setattr(lib_cli_exit_tools.config, "traceback_force_color", False, raising=False)
-
-    def fake_code(exc: BaseException) -> int:
-        codes.append(f"code:{exc}")
-        return 88
-
-    def exploding_run_cli(
-        *_args: object,
-        exception_handler: Callable[[BaseException], int] | None = None,
-        **_kwargs: object,
-    ) -> int:
-        def default_handler(exc: BaseException) -> int:
-            return 1
-
-        handler: Callable[[BaseException], int] = exception_handler or default_handler
-        return handler(RuntimeError("boom"))
-
-    printer = _record_print_message(printed)
-    monkeypatch.setattr(lib_cli_exit_tools, "print_exception_message", printer)
-    monkeypatch.setattr(lib_cli_exit_tools, "get_system_exit_code", fake_code)
-    monkeypatch.setattr("lib_cli_exit_tools.application.runner.print_exception_message", printer)
-    monkeypatch.setattr("lib_cli_exit_tools.application.runner.get_system_exit_code", fake_code)
-    monkeypatch.setattr(lib_cli_exit_tools, "run_cli", exploding_run_cli)
-    monkeypatch.setattr("lib_cli_exit_tools.application.runner.run_cli", exploding_run_cli)
+def test_a_usage_error_exits_with_the_click_usage_code_via_module_entry(monkeypatch: pytest.MonkeyPatch, isolated_traceback_config: None) -> None:
+    monkeypatch.setattr(sys, "argv", ["keep_github_workflows_active", "--bad-flag"])
 
     with pytest.raises(SystemExit) as exc:
         runpy.run_module("keep_github_workflows_active.__main__", run_name="__main__")
 
-    assert exc.value.code == 88
-    assert printed == [PrintedTraceback(trace_back=False, length_limit=500, stream_present=False)]
-    assert codes == ["code:boom"]
+    assert exc.value.code == 2
 
 
 @pytest.mark.os_agnostic
@@ -162,5 +66,14 @@ def test_when_traceback_flag_is_used_via_module_entry_the_full_poem_is_printed(
 
 
 @pytest.mark.os_agnostic
-def test_when_module_entry_imports_cli_the_alias_stays_intact() -> None:
-    assert cli_mod.cli.name == cli_mod.cli.name
+def test_when_the_module_is_imported_it_runs_nothing() -> None:
+    # Left imported, every later runpy of the module warns that it is already loaded.
+    previous = sys.modules.pop("keep_github_workflows_active.__main__", None)
+    try:
+        module = importlib.import_module("keep_github_workflows_active.__main__")
+
+        assert module.cli is cli_mod
+    finally:
+        sys.modules.pop("keep_github_workflows_active.__main__", None)
+        if previous is not None:
+            sys.modules["keep_github_workflows_active.__main__"] = previous
