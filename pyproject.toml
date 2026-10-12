@@ -1,6 +1,6 @@
 [project]
 name = "keep_github_workflows_active"
-version = "2.3.4"
+version = "2.3.5"
 description = "Template for python apps with registered cli commands"
 readme = "README.md"
 requires-python = ">=3.10"
