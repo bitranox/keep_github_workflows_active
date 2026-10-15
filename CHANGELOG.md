@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [2.3.6] 2026-10-15 16:35:48
+
 ### Fixed
 
 - The source distribution ships only the package, its tests, its docs, `README.md`, `LICENSE`,
