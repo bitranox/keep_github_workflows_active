@@ -235,4 +235,4 @@ ignore-vulns = ["CVE-2026-3219", "CVE-2026-6357", "PYSEC-2022-42969", "CVE-2026-
 
 [tool.uv]
 exclude-newer = "1 day"
-exclude-newer-package = {lib-cli-exit-tools = false, rtoml = "2026-10-12T00:17:16Z"}
+exclude-newer-package = {lib-cli-exit-tools = false}
