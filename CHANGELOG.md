@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [2.3.6] 2026-10-15 16:35:48
+## [2.3.6] - 2026-10-15
 
 ### Fixed
 
@@ -23,7 +23,7 @@
   (`pytest_runtest_setup` in `tests/conftest.py`); registered in `pyproject.toml` alone they skipped
   nothing, so a test trusting its marker ran everywhere. `tests/test_platform_markers.py` pins it.
 
-## [2.3.5] 2026-10-12 22:50:01
+## [2.3.5] - 2026-10-12
 
 ### Added
 - Python 3.15 is a supported version: declared in the classifiers, so CI and `make test-all` run it.
@@ -36,7 +36,7 @@
   a plain `pip install` from PyPI does not.
 - `rtoml` floor raised to 0.14.0, the first release with Python 3.15 wheels.
 
-## [2.3.4] 2026-10-05 19:35:58
+## [2.3.4] - 2026-10-05
 
 ### Fixed
 - `python -m keep_github_workflows_active` now runs `cli.main()` like the console scripts; a usage error (bad flag, unknown command) exits 2 instead of 1.
@@ -44,7 +44,7 @@
 ### Changed
 - Raised dependency and dev tool floors to their current releases.
 
-## [2.3.3] 2026-07-24
+## [2.3.3] - 2026-07-24
 
 ### Changed
 - Added the curated bitranox `[tool.ruff.lint].select` (pycodestyle/pyflakes/isort/bugbear/pylint/bandit/etc.) plus a Pydantic `flake8-type-checking.runtime-evaluated-base-classes` entry; ruff 0.16's ~920-rule default (no explicit `select`) was about to reflood CI with unrelated rule families.
@@ -56,7 +56,7 @@
 ### Fixed
 - CI: `make test` was red under the latest `ruff` (0.16 default rule explosion on a no-`select` repo); the fixes above make it pass again.
 
-## [2.3.2] 2026-06-14
+## [2.3.2] - 2026-06-14
 
 ### Changed
 - Added a `typed_click.py` facade wrapping rich-click's `option` / `version_option` decorators behind explicit, fully-known signatures, keeping the CLI strict-clean under pyright 1.1.410 (`reportUnknownMemberType`) without disabling the rule (ignore isolated to the facade).
