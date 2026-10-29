@@ -239,5 +239,5 @@ layers = [
 ignore-vulns = ["CVE-2026-3219", "CVE-2026-6357", "PYSEC-2022-42969", "CVE-2026-44405", "CVE-2026-44431", "CVE-2026-44432"]
 
 [tool.uv]
-exclude-newer = "1 day"
-exclude-newer-package = {lib-cli-exit-tools = false}
+exclude-newer = "7 days"
+exclude-newer-package = {lib-cli-exit-tools = false, certifi = "2026-10-23T11:36:17Z", hatchling = "2026-10-28T02:27:31Z", pytest = "2026-10-27T21:30:21Z", ruff = "2026-10-27T00:34:06Z"}
