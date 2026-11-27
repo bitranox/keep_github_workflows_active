@@ -4,12 +4,12 @@
 
 ### Changed
 
-- Supported platform is now Python 3.14 on Linux only: `requires-python = ">=3.14"`, the
-  classifiers name 3.14 and `Operating System :: POSIX :: Linux`, and CI runs `ubuntu-latest`
-  on 3.14 only (the "Activate Workflows" jobs no longer float on `3.x` or pin 3.13). The
+- Supported platform is now Python 3.15 on Linux only: `requires-python = ">=3.15"`, the
+  classifiers name 3.15 and `Operating System :: POSIX :: Linux`, and CI runs `ubuntu-latest`
+  on 3.15 only (the "Activate Workflows" jobs no longer float on `3.x` or pin 3.13). The
   scheduled run failed because `requires-python` still admitted 3.10 while the classifiers began
-  at 3.14: bmk raised the `import-linter` floor to 2.17 (fine on 3.14), and `uv lock` could not
-  resolve it for 3.10, where 2.16 and later do not install.
+  at 3.14: bmk raised the `import-linter` floor to 2.17, and `uv lock` could not resolve it for
+  3.10, where 2.16 and later do not install.
 - `enable-all-workflows` and `delete-old-workflow-runs` reuse one HTTPS connection per run through
   a `requests.Session` (`github_session()`), instead of opening a new one for every API call
   (measured against api.github.com: 128 ms per call before, 45 ms after). The listing, enable and

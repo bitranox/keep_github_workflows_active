@@ -1,7 +1,7 @@
 # Installation Guide
 
-`keep_github_workflows_active` requires **Python 3.14 or newer on Linux**
-(`requires-python = ">=3.14"`, classifier `Operating System :: POSIX :: Linux`).
+`keep_github_workflows_active` requires **Python 3.15 or newer on Linux**
+(`requires-python = ">=3.15"`, classifier `Operating System :: POSIX :: Linux`).
 
 Every method below installs two console scripts that run the same CLI:
 `keep_github_workflows_active` and `keep-github-workflows-active`.

@@ -113,12 +113,12 @@ Installing from a checkout, from a built wheel, with pipx or with uv is describe
 [INSTALL.md](INSTALL.md). Every install puts two console scripts on your `PATH`,
 `keep_github_workflows_active` and `keep-github-workflows-active`, which run the same CLI.
 
-### Supported platform: Python 3.14 on Linux
+### Supported platform: Python 3.15 on Linux
 
-- The package requires **Python 3.14 or newer** (`requires-python = ">=3.14"`)
+- The package requires **Python 3.15 or newer** (`requires-python = ">=3.15"`)
   and is built and tested for **Linux** only.
 - Continuous integration runs on GitHub's `ubuntu-latest` runner with CPython
-  3.14; the CI matrix comes from the `Programming Language :: Python :: 3.14`
+  3.15; the CI matrix comes from the `Programming Language :: Python :: 3.15`
   classifier and `[tool.ci].os` in `pyproject.toml`.
 - Runtime dependencies: `rich-click` (CLI), `lib_cli_exit_tools` (exit codes and traceback
   output), `requests` (GitHub API calls) and `pydantic` (parsing GitHub's replies).
