@@ -2,138 +2,68 @@
 
 ## Overview
 
-This document describes the security measures implemented in `keep_github_workflows_active` to protect sensitive credentials and prevent secret leakage.
+This document describes how `keep_github_workflows_active` keeps its GitHub token out of logs and
+error output.
 
-## Credential Sanitization
+## Where the token goes
 
-### Problem Statement
-
-GitHub API interactions require authentication tokens that must never appear in log files, monitoring systems, or error messages. Prior to v2.1, logging calls could inadvertently expose:
-
-- Personal access tokens in HTTP headers
-- Tokens embedded in error messages
-- API keys in structured logs
-
-### Solution
-
-The `sanitization` module provides comprehensive protection against credential leakage through automatic redaction of sensitive data before it reaches logging systems.
+- The token is read from `--token`, `SECRET_GITHUB_TOKEN` or a `.env` file (lookup order in
+  [README.md](../../README.md)).
+- `github_session()` in `keep_github_workflow_active.py` puts it into the `Authorization: Bearer`
+  header of the `requests.Session` that every API call of a run uses. The module never puts the
+  token or the session headers into a log or exception message it builds.
+- Every log message of `keep_github_workflow_active.py` passes through
+  `sanitization.sanitize_message()` before it reaches the logger, so a token that appears in text
+  from elsewhere (for example in GitHub's error message) is redacted there.
 
 ## Sanitization Module
 
 **Location**: `src/keep_github_workflows_active/sanitization.py`
 
-### Core Functions
+All functions are pure: they return a sanitized copy and leave the input unchanged.
 
-#### `sanitize_headers(headers: Mapping[str, str]) -> dict[str, str]`
+### `sanitize_headers(headers: Mapping[str, str]) -> dict[str, str]`
 
-Redacts authentication headers while preserving safe metadata.
+Replaces the value of every header whose lower-cased name is in `SENSITIVE_HEADERS` with
+`[REDACTED]`; other headers are copied unchanged.
 
-**Protected Headers**:
-- Authorization
-- X-API-Key / API-Key
-- X-Auth-Token / Auth-Token
-- Cookie / Set-Cookie
+**Protected headers**: Authorization, X-API-Key, API-Key, X-Auth-Token, Auth-Token, Cookie,
+Set-Cookie.
 
-**Example**:
 ```python
 headers = {"Authorization": "Bearer ghp_ExampleToken123456", "Accept": "application/json"}
-sanitized = sanitize_headers(headers)
-# Result: {"Authorization": "[REDACTED]", "Accept": "application/json"}
+sanitize_headers(headers)
+# {'Authorization': '[REDACTED]', 'Accept': 'application/json'}
 ```
 
-#### `sanitize_message(text: str) -> str`
+### `sanitize_message(text: str) -> str`
 
-Scrubs token-like patterns from text using regex detection.
+Replaces every match of `TOKEN_PATTERN` with `[REDACTED]`.
 
-**Protected Patterns**:
-- GitHub tokens (ghp_, gho_, ghs_, etc.)
-- Long hexadecimal strings (40+ characters)
-- Base64-encoded sequences (40+ characters)
-
-**Example**:
 ```python
-msg = "Error: token ghp_1234567890abcdefABCDEF1234567890abcdefAB invalid"
-sanitized = sanitize_message(msg)
-# Result: "Error: token [REDACTED] invalid"
+sanitize_message("Error: token ghp_1234567890abcdefABCDEF1234567890abcdefAB invalid")
+# 'Error: token [REDACTED] invalid'
 ```
 
-#### `sanitize_dict(data: Mapping[str, Any]) -> dict[str, Any]`
+### `sanitize_dict(data: Mapping[str, Any]) -> dict[str, Any]`
 
-Recursively sanitizes dictionary structures, protecting both sensitive keys and token patterns in values.
+Redacts the value of every key whose lower-cased name is exactly one of `SENSITIVE_KEYS` or
+`SENSITIVE_HEADERS`, recurses into nested mappings, and scrubs the remaining string values with
+`sanitize_message`. Other values are copied unchanged.
 
-**Protected Keys**:
-- authorization, api_key, token, secret
-- password, passwd, pwd
-- credential, credentials
-- access_token, auth_token
-
-**Example**:
 ```python
 data = {"user": "alice", "token": "ghp_secret123", "meta": {"api_key": "xyz789"}}
-sanitized = sanitize_dict(data)
-# Result: {
-#     "user": "alice",
-#     "token": "[REDACTED]",
-#     "meta": {"api_key": "[REDACTED]"}
-# }
+sanitize_dict(data)
+# {'user': 'alice', 'token': '[REDACTED]', 'meta': {'api_key': '[REDACTED]'}}
 ```
 
-#### `sanitize_for_logging(value: Any) -> Any`
+### `sanitize_for_logging(value: Any) -> Any`
 
-Convenience wrapper that auto-detects the input type and applies appropriate sanitization.
-
-## Usage in Codebase
-
-All logging calls in `keep_github_workflow_active.py` wrap their messages with `sanitization.sanitize_message()`:
-
-```python
-# Before (unsafe)
-logger.info(f"Found {count} repositories for user {owner}")
-logger.error(f"ERROR: {error_message}")
-
-# After (safe)
-logger.info(sanitization.sanitize_message(f"Found {count} repositories for user {owner}"))
-logger.error(sanitization.sanitize_message(f"ERROR: {error_message}"))
-```
-
-## Testing
-
-**Test Coverage**: 100% of sanitization module
-**Test Suite**: `tests/test_sanitization.py`
-
-### Test Categories
-
-1. **Header Sanitization** (7 tests)
-   - Authorization headers
-   - API keys
-   - Cookies
-   - Case-insensitive matching
-   - Edge cases (empty dicts)
-
-2. **Message Sanitization** (6 tests)
-   - GitHub token patterns
-   - Base64 sequences
-   - Multiple tokens
-   - Short strings (preserved)
-   - Normal text (unchanged)
-
-3. **Dictionary Sanitization** (5 tests)
-   - Sensitive key detection
-   - Nested structures
-   - Token patterns in values
-   - Non-string values (pass-through)
-
-4. **Integration Tests** (3 tests)
-   - Real GitHub headers
-   - Error message scenarios
-   - Consistency checks
-
-5. **Doctests** (9 tests)
-   - Inline examples in docstrings
+`sanitize_dict` for mappings, `sanitize_message` for strings, any other value unchanged.
 
 ## Configuration
 
-### Sensitive Headers (Frozenset)
+### Sensitive headers
 
 ```python
 SENSITIVE_HEADERS = frozenset(
@@ -149,7 +79,7 @@ SENSITIVE_HEADERS = frozenset(
 )
 ```
 
-### Sensitive Keys (Frozenset)
+### Sensitive keys
 
 ```python
 SENSITIVE_KEYS = frozenset(
@@ -173,25 +103,47 @@ SENSITIVE_KEYS = frozenset(
 )
 ```
 
-### Token Pattern (Regex)
+### Token pattern
 
 ```python
 TOKEN_PATTERN = re.compile(
-    r"\b(gh[a-z]_[A-Za-z0-9]{36,}|[a-f0-9]{40,}|[A-Za-z0-9+/]{40,}={0,2})\b",
+    r"\bgh[a-z]_[A-Za-z0-9._-]{36,}"
+    r"|\b[a-f0-9]{40,}\b"
+    r"|\b[A-Za-z0-9+/]{40,}={0,2}\b",
     re.IGNORECASE,
 )
 ```
 
 **Matches**:
-- `ghp_`, `gho_`, `ghs_` (GitHub tokens)
-- Long hex strings (40+ chars)
-- Base64 sequences (40+ chars with optional padding)
+
+- GitHub tokens with a `gh?_` prefix (`ghp_`, `gho_`, `ghs_`, ...) followed by 36 or more
+  characters from `A-Z a-z 0-9 . _ -`. The body allows `.`, `_` and `-` and the branch has no
+  trailing word boundary, so a long JWT-style `ghs_` installation token is redacted whole, even
+  when it ends in `-`.
+- Hexadecimal strings of 40 or more characters.
+- Base64-like strings of 40 or more characters, with optional `=` padding.
+
+## Testing
+
+**Test suite**: `tests/test_sanitization.py`, plus the doctests in `sanitization.py`.
+
+The tests cover:
+
+1. **Headers**: Authorization, API keys and cookies redacted; case-insensitive names; every name
+   in `SENSITIVE_HEADERS`; empty input; the constant is immutable.
+2. **Messages**: GitHub tokens, a dotted `ghs_` JWT-style token redacted whole, base64 sequences,
+   several tokens in one message; short hex strings and plain text unchanged.
+3. **Dictionaries**: sensitive keys, nested mappings, token patterns in values, non-string values
+   passed through, empty input.
+4. **`sanitize_for_logging`**: mappings, strings and other types.
+5. **Scenarios**: real GitHub headers, an error message carrying a token, one placeholder value
+   for every call.
 
 ## Best Practices
 
 ### For Developers
 
-1. **Always sanitize before logging**:
+1. **Sanitize before logging**:
    ```python
    logger.info(sanitization.sanitize_message(message))
    ```
@@ -204,97 +156,70 @@ TOKEN_PATTERN = re.compile(
 3. **Sanitize HTTP headers**:
    ```python
    safe_headers = sanitization.sanitize_headers(headers)
-   logger.debug(f"Request headers: {safe_headers}")
+   logger.debug("Request headers: %s", safe_headers)
    ```
 
-4. **Never log raw tokens**:
-   ```python
-   # WRONG
-   logger.info(f"Using token: {github_token}")
-
-   # RIGHT
-   logger.info("Authenticating with GitHub API")
-   ```
+4. **Never log raw tokens**: log that authentication happens, never the token value.
 
 ### For Operations
 
-1. **Log Rotation**: Ensure existing logs are rotated and purged according to retention policies
-2. **Access Control**: Restrict log file access to authorized personnel only
-3. **Audit**: Periodically review logs for any leaked credentials (automated scanning recommended)
+1. **Log Rotation**: rotate and purge logs according to your retention policy.
+2. **Access Control**: restrict log file access to authorized personnel.
+3. **Audit**: periodically scan logs for leaked credentials (automated scanning recommended).
 
 ## Security Considerations
 
-### What is Protected
+### What is redacted in log messages
 
-- ✅ HTTP Authorization headers
-- ✅ API keys and tokens
-- ✅ GitHub personal access tokens (ghp_*, gho_*, etc.)
-- ✅ Long hexadecimal strings (potential tokens)
-- ✅ Base64-encoded secrets
-- ✅ Dictionary keys containing "password", "secret", "token", etc.
+- Authorization and API-key headers (`sanitize_headers`, `sanitize_dict`)
+- GitHub tokens with a `gh?_` prefix
+- Hexadecimal strings of 40 or more characters
+- Base64-like strings of 40 or more characters
+- Values of the keys listed in `SENSITIVE_KEYS` (exact, case-insensitive key match)
 
-### What is NOT Protected
+### What is not covered
 
-- ⚠️ Short hexadecimal strings (<40 chars) - may be commit SHAs
-- ⚠️ Custom token formats not matching known patterns
-- ⚠️ Credentials in binary formats or non-text logs
-- ⚠️ Secrets in stack traces from third-party libraries
+- Hexadecimal strings shorter than 40 characters (for example abbreviated commit SHAs)
+- Token formats that match none of the patterns
+- Text that does not go through the logger: the progress lines written to stdout
+  (`activate workflow <repo>/<file>`, `remove workflow run <repo>/<run_id>`) and the messages of
+  the `RuntimeError`s the GitHub functions raise. Both are built from the owner, repository,
+  workflow file, run id and, for errors, GitHub's error message or the `requests` exception text.
+- Secrets inside tracebacks of third-party libraries (shown with `--traceback`)
+- Binary or non-text data
 
 ### Limitations
 
-1. **Pattern Matching**: Sanitization relies on regex patterns; novel token formats may not be detected
-2. **Performance**: Large dictionaries or very long messages incur regex processing overhead
-3. **Mutations**: Original objects are never modified; only copies are sanitized
-4. **Binary Data**: Only text/string sanitization is supported
+1. **Pattern Matching**: sanitization relies on regex patterns; novel token formats may not be
+   detected.
+2. **Performance**: large dictionaries or very long messages cost regex processing time.
+3. **Copies**: original objects are never modified; only the returned copies are sanitized.
+4. **Text only**: only strings and mappings are sanitized.
 
 ## Incident Response
 
 If credentials are discovered in logs:
 
 1. **Immediate**:
-   - Revoke the exposed token immediately
-   - Generate a new token with minimal required permissions
-   - Update repository secrets
+   - Revoke the exposed token
+   - Generate a new token with the minimal permissions the endpoints need
+   - Update the repository secrets
 
 2. **Investigation**:
    - Identify the log entry source (module, function, line)
-   - Determine if sanitization was bypassed or pattern not detected
-   - Check if logs were accessed by unauthorized parties
+   - Determine whether sanitization was bypassed or the pattern did not match
+   - Check whether the logs were accessed by unauthorized parties
 
 3. **Remediation**:
-   - Update sanitization patterns if new token format detected
-   - Add regression test for the specific case
+   - Update the sanitization patterns if a new token format was involved
+   - Add a regression test for the specific case
    - Purge logs containing the exposed credential
-   - Document in incident log
+   - Document it in the incident log
 
 4. **Prevention**:
-   - Review all new logging statements in code reviews
+   - Review new logging statements in code review
    - Add pre-commit hooks checking for common token patterns
    - Enable secret scanning in CI (gitleaks, detect-secrets)
-
-## Compliance
-
-### GDPR / Privacy
-
-While this module focuses on credential protection, the same patterns apply to PII:
-- Email addresses
-- API keys tied to individuals
-- User authentication tokens
-
-### SOC 2 / ISO 27001
-
-Sanitization supports compliance requirements:
-- Access control to sensitive data
-- Logging without credential exposure
-- Audit trail preservation without security risks
-
-## Changelog
-
-### v2.1.0 (2025-10-29)
-- Initial sanitization module implementation
-- Added comprehensive test suite (31 tests)
-- Integrated into all logging calls in `keep_github_workflow_active.py`
-- Documented security practices
 
 ## References
 
