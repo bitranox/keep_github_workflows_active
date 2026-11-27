@@ -1,25 +1,24 @@
-"""Domain-level behaviors supporting the minimal CLI transport.
+"""Diagnostic behaviors behind the CLI's ``hello`` and ``fail`` commands.
 
 Purpose
 -------
-Collect the placeholder behaviors that the CLI adapter exposes so that each
-concern remains self-contained. Keeping these helpers together makes it easy to
-swap in richer logging logic later without touching the transport surface.
+Provide a deterministic success path and a deterministic failure path, so
+packaging checks, smoke tests and the traceback handling of the CLI can be
+exercised without calling the GitHub API.
 
 Contents
 --------
-* :func:`emit_greeting` - success-path helper that writes the canonical scaffold
-  message.
-* :func:`raise_intentional_failure` - deterministic error hook used by tests and
-  CLI flows to validate traceback handling.
-* :func:`noop_main` - placeholder entry used when callers expect a ``main``
-  callable despite the domain layer being stubbed today.
+* :func:`emit_greeting` - writes the canonical greeting (``hello``).
+* :func:`raise_intentional_failure` - raises ``RuntimeError`` (``fail``) to
+  exercise exit codes and traceback output.
+* :func:`noop_main` - does nothing; the CLI runs it when only
+  ``--traceback`` / ``--no-traceback`` is given without a subcommand.
 
 System Role
 -----------
-Acts as the temporary domain surface for this template. Other modules import
-from here instead of duplicating literals so the public API stays coherent as
-features evolve.
+The workflow maintenance logic lives in
+:mod:`keep_github_workflows_active.keep_github_workflow_active`; this module
+holds only the diagnostic helpers, which the package root re-exports.
 """
 
 from __future__ import annotations
@@ -55,8 +54,7 @@ def emit_greeting(*, stream: TextIO | None = None) -> None:
 
     Why
         Provide a deterministic success path that the documentation, smoke
-        tests, and packaging checks can rely on while the real logging helpers
-        are developed.
+        tests, and packaging checks can rely on without calling the GitHub API.
 
     What
         Writes :data:`CANONICAL_GREETING` followed by a newline to the target
@@ -114,12 +112,12 @@ def raise_intentional_failure() -> None:
 
 
 def noop_main() -> None:
-    """Explicit placeholder callable for transports without domain logic yet.
+    """Do nothing; the default action of the CLI root command.
 
     Why
-        Some tools expect a module-level ``main`` even when the underlying
-        feature set is still stubbed out. Exposing this helper makes that
-        contract obvious and easy to replace later.
+        The CLI runs this when it is called with only ``--traceback`` or
+        ``--no-traceback`` and no subcommand (see ``cli.cli_main``), so that
+        invocation succeeds without side effects.
 
     What
         Performs no work and returns immediately.

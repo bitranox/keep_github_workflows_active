@@ -1,13 +1,13 @@
 [project]
 name = "keep_github_workflows_active"
 version = "2.3.6"
-description = "Template for python apps with registered cli commands"
+description = "Keep the GitHub Actions workflows of a user's or organisation's repositories enabled and delete their old workflow runs"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = ["rich-click>=1.9.9", "lib_cli_exit_tools>=2.5.0", "requests>=2.34.2", "pydantic>=2.14.4"]
 license = { text = "MIT" }
 authors = [{ name = "bitranox", email = "bitranox@gmail.com" }]
-keywords = ["logging", "rich", "cli", "terminal", "ansi"]
+keywords = ["github", "github-actions", "workflows", "automation", "cli"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",

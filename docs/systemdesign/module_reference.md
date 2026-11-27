@@ -237,7 +237,8 @@ them for the `info` command.
 * `tests/test_behaviors.py`, `tests/test_metadata.py`: the diagnostic helpers and metadata.
 * `tests/test_packaging.py`: builds the sdist and wheel and checks their contents.
 * Doctests in the modules run with `--doctest-modules`, except those of
-  `keep_github_workflow_active.py`, which `addopts` ignores because they call the live API.
+  `keep_github_workflow_active.py`: `addopts` ignores that module, and several of its doctests
+  call the live API when credentials are configured.
 
 **Manual checks:**
 

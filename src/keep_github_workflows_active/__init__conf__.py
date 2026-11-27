@@ -2,9 +2,9 @@
 
 Purpose
 -------
-Expose the current project metadata as simple constants. These values are kept
-in sync with ``pyproject.toml`` by development automation (tests, push
-pipelines), so runtime code does not query packaging metadata.
+Expose the current project metadata as simple constants. bmk rewrites them from
+``pyproject.toml`` during ``make bump-*`` and before ``make commit`` /
+``make push``, so runtime code does not query packaging metadata.
 
 Contents
 --------
@@ -24,7 +24,7 @@ import sys
 #: Distribution name declared in ``pyproject.toml``.
 name = "keep_github_workflows_active"
 #: Human-readable summary shown in CLI help output.
-title = "Template for python apps with registered cli commands"
+title = "Keep the GitHub Actions workflows of a user's or organisation's repositories enabled and delete their old workflow runs"
 #: Current release version pulled from ``pyproject.toml`` by automation.
 version = "2.3.6"
 #: Repository homepage presented to users.

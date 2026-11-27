@@ -1,25 +1,36 @@
-"""CLI adapter wiring the behavior helpers into a rich-click interface.
+"""CLI adapter wiring the GitHub maintenance functions into a rich-click interface.
 
 Purpose
 -------
-Expose a stable command-line surface so tooling, documentation, and packaging
-automation can be exercised while the richer logging helpers are being built.
-By delegating to :mod:`keep_github_workflows_active.behaviors` the transport stays
-aligned with the Clean Code rules captured in
-``docs/systemdesign/module_reference.md``.
+Expose the two maintenance commands (``enable-all-workflows`` and
+``delete-old-workflow-runs``, backed by
+:mod:`keep_github_workflows_active.keep_github_workflow_active`) and the
+diagnostic commands (``info``, ``hello``, ``fail``, backed by
+:mod:`keep_github_workflows_active.behaviors` and ``__init__conf__``) behind one
+command group, with exit codes and traceback output handled by
+``lib_cli_exit_tools``. ``docs/systemdesign/module_reference.md`` describes the
+wiring.
 
 Contents
 --------
+* :class:`CliContextObject` - typed ``ctx.obj`` holding the traceback flag.
 * :data:`CLICK_CONTEXT_SETTINGS` - shared Click settings ensuring consistent
   ``--help`` behavior across commands.
 * :func:`apply_traceback_preferences` - helper that synchronises the shared
   traceback configuration flags.
 * :func:`snapshot_traceback_state` / :func:`restore_traceback_state` - utilities
-  for preserving and reapplying the global traceback preference.
+  for preserving and reapplying the global traceback preference
+  (:class:`TracebackState`).
 * :func:`cli` - root command group wiring the global options.
-* :func:`cli_main` - default action when no subcommand is provided.
+* :func:`cli_main` - default action when only ``--traceback`` /
+  ``--no-traceback`` is given without a subcommand.
+* :func:`cli_enable_all_workflows`, :func:`cli_delete_old_workflow_runs` - the
+  maintenance subcommands; :func:`_fallback_owner` / :func:`_fallback_token`
+  fill a missing ``--owner`` / ``--token`` from the environment or ``.env``.
 * :func:`cli_info`, :func:`cli_hello`, :func:`cli_fail` - subcommands covering
   metadata printing, success path, and failure path.
+* :func:`_no_subcommand_requested`, :func:`_traceback_option_requested`,
+  :func:`_show_help` - decide between the help screen and :func:`cli_main`.
 * :func:`_record_traceback_choice`, :func:`_announce_traceback_choice` - persist
   traceback preferences across context and shared tooling.
 * :func:`_invoke_cli`, :func:`_current_traceback_mode`, :func:`_traceback_limit`,
@@ -31,10 +42,11 @@ Contents
 
 System Role
 -----------
-The CLI is the primary adapter for local development workflows; packaging
-targets register the console script defined in :mod:`keep_github_workflows_active.__init__conf__`.
-Other transports (including ``python -m`` execution) reuse the same helpers so
-behaviour remains consistent regardless of entry point.
+The CLI is the package's entry point: both console scripts declared in
+``[project.scripts]`` and ``python -m keep_github_workflows_active`` run
+:func:`main`, so behaviour is identical regardless of entry point. The program
+name shown in help and ``--version`` comes from
+:mod:`keep_github_workflows_active.__init__conf__`.
 """
 
 from __future__ import annotations
@@ -215,8 +227,9 @@ def _no_subcommand_requested(ctx: click.Context) -> bool:
     """Return ``True`` when the invocation did not name a subcommand.
 
     Why
-        The CLI defaults to calling ``noop_main`` when no subcommand appears; we
-        need a readable predicate to capture that intent.
+        Without a subcommand the CLI prints its help or, with an explicit
+        traceback flag, calls ``noop_main``; we need a readable predicate to
+        capture that branch.
 
     Inputs
         ctx:
@@ -418,11 +431,11 @@ def cli(ctx: click.Context, *, traceback: bool) -> None:
         toggle diagnostic depth without editing configuration files.
 
     What
-        Ensures a dict-based context, stores the ``traceback`` flag, and mirrors
+        Ensures a :class:`CliContextObject` context, stores the ``traceback`` flag, and mirrors
         the value into ``lib_cli_exit_tools.config`` so downstream helpers observe
-        the preference. When no subcommand (or options) are provided, the command
-        prints help instead of running the domain stub; otherwise the default
-        action delegates to :func:`cli_main`.
+        the preference. Without a subcommand the command prints its help; when
+        ``--traceback`` or ``--no-traceback`` is given without a subcommand it
+        runs :func:`cli_main` instead.
 
     Side Effects
         Mutates :mod:`lib_cli_exit_tools.config` to reflect the requested
@@ -450,12 +463,11 @@ def cli(ctx: click.Context, *, traceback: bool) -> None:
 
 
 def cli_main() -> None:
-    """Run the placeholder domain entry when callers opt into execution.
+    """Run the default action when no subcommand is given but a traceback flag is.
 
     Why
-        Maintains compatibility with tooling that expects the original
-        "do-nothing" behaviour by explicitly opting in via options (e.g.
-        ``--traceback`` without subcommands).
+        ``--traceback`` or ``--no-traceback`` without a subcommand is a valid
+        invocation; it runs this no-op instead of printing the help.
 
     Side Effects
         Delegates to :func:`noop_main`.

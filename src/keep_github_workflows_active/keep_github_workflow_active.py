@@ -1,3 +1,34 @@
+"""Keep the GitHub Actions workflows of an owner's repositories enabled and prune old runs.
+
+Purpose
+-------
+Talk to the GitHub REST API for the two maintenance commands: re-enable every
+workflow of every repository of an owner, and delete all but the newest
+workflow runs of each repository.
+
+Contents
+--------
+* :func:`get_owner` / :func:`get_github_token` - read ``SECRET_GITHUB_OWNER`` /
+  ``SECRET_GITHUB_TOKEN`` from the environment or a ``.env`` file
+  (:func:`_lookup_config_value`, :func:`_candidate_env_files`,
+  ``KEEP_GITHUB_WORKFLOWS_ACTIVE_DOTENV_PATH``).
+* :func:`github_session` - the ``requests.Session`` every API call of a run uses.
+* :func:`enable_all_workflows` / :func:`delete_old_workflow_runs` - the entry
+  points behind the CLI commands; they take ``owner`` and ``github_token``.
+* :func:`get_repositories`, :func:`get_workflows`, :func:`get_workflow_runs`,
+  :func:`enable_workflow`, :func:`delete_workflow_run` - single API steps that
+  take the session.
+* Pydantic reply models and :func:`_parse_reply`, which refuses a reply missing
+  a field the tool acts on with ``RuntimeError("Unexpected GitHub reply for ...")``.
+
+System Role
+-----------
+The GitHub boundary: replies are parsed into the models here, and every log
+message passes through :func:`keep_github_workflows_active.sanitization.sanitize_message`.
+pytest's ``addopts`` ignores this module, so its doctests do not run; several of
+them call the live API when credentials are configured.
+"""
+
 # STDLIB
 from __future__ import annotations
 
@@ -219,9 +250,11 @@ def _candidate_env_files() -> list[pathlib.Path]:
 
     Why
         Developers often run the script from varying working directories. We
-        probe common locations (current working directory, the package folder,
-        and the repository root) so local and CI workflows can share the same
-        fallback behaviour.
+        probe the file named by ``KEEP_GITHUB_WORKFLOWS_ACTIVE_DOTENV_PATH`` (if
+        set), then common locations (current working directory, the package
+        folder, and two levels above it, which is the repository root in a source
+        checkout) so local and CI workflows can share the same fallback
+        behaviour.
 
     Returns
     -------
@@ -382,9 +415,16 @@ def github_session(github_token: str) -> requests.Session:
 
 def enable_all_workflows(owner: str, github_token: str) -> None:
     """
-    :param owner: the repo owner
-    :param github_token:
-    :return:
+    Enable every workflow of every repository of ``owner``.
+
+    Opens one :func:`github_session` for the run, lists the repositories and their
+    workflow files, writes ``activate workflow <repo>/<file>`` for each and calls
+    :func:`enable_workflow`, which skips the prefixes in ``SKIPPED_WORKFLOW_PREFIXES``.
+
+    :param owner: The user or organisation owning the repositories.
+    :param github_token: Personal access token for the session.
+    :return: None
+    :raises RuntimeError: When GitHub answers an error status or a malformed reply.
 
     >>> try:
     ...     my_owner = get_owner()
@@ -408,10 +448,18 @@ def enable_all_workflows(owner: str, github_token: str) -> None:
 
 def delete_old_workflow_runs(owner: str, github_token: str, number_of_workflow_runs_to_keep: int = 50) -> None:
     """
-    :param owner:
-    :param github_token:
-    :param number_of_workflow_runs_to_keep:
-    :return:
+    Delete all but the newest workflow runs of every repository of ``owner``.
+
+    Opens one :func:`github_session` for the run. Per repository, all run ids (across
+    all of its workflows) are sorted descending; the first
+    ``number_of_workflow_runs_to_keep`` are kept and :func:`delete_workflow_run` is
+    called for the rest, writing ``remove workflow run <repo>/<run_id>`` for each.
+
+    :param owner: The user or organisation owning the repositories.
+    :param github_token: Personal access token for the session.
+    :param number_of_workflow_runs_to_keep: Runs to keep per repository.
+    :return: None
+    :raises RuntimeError: When GitHub answers an error status or a malformed reply.
 
     >>> try:
     ...     owner = get_owner()
@@ -537,7 +585,10 @@ def _get_next_page_url(response: requests.Response) -> str | None:
 
 def get_repositories(owner: str, session: requests.Session) -> list[str]:
     """
-    Fetch all repositories for a given GitHub user, handling pagination and setting the page size to 100.
+    Fetch all repository names of an organisation or user, handling pagination and setting the page size to 100.
+
+    Requests ``/orgs/<owner>/repos`` first; when GitHub answers 404 the owner is no
+    organisation and ``/users/<owner>/repos`` is listed instead.
 
     :param owner: The username of the repository owner.
     :param session: Session from :func:`github_session` carrying the auth headers.
@@ -598,7 +649,7 @@ def get_workflows(owner: str, repository: str, session: requests.Session) -> lis
     :param owner: The username of the repository owner.
     :param repository: The name of the repository.
     :param session: Session from :func:`github_session` carrying the auth headers.
-    :return: A list of workflow names.
+    :return: The workflow file names (last component of each workflow's path).
 
 
     >>> try:
@@ -722,7 +773,9 @@ def enable_workflow(owner: str, repository: str, workflow_filename: str, session
     :param repository: The name of the repository.
     :param workflow_filename: The name of the workflow file, for example, "python-package.yml".
     :param session: Session from :func:`github_session`, its token allowed to enable workflows.
-    :return: A success message if the workflow is enabled.
+    :return: ``Enabled repository <repo>, workflow <file>``, or a ``... skipped - ...`` message for a
+        file whose name starts with a prefix in ``SKIPPED_WORKFLOW_PREFIXES`` (no request is sent then).
+    :raises RuntimeError: When GitHub answers an error status.
 
 
     >>> try:
@@ -773,9 +826,10 @@ def enable_workflow(owner: str, repository: str, workflow_filename: str, session
 
 def main() -> None:
     """
-    enable all workflows in all repositories for the given owner
-    >>> # we actually don't do that here AGAIN because of GitHub Rate limits
-    >>> # those functions are called anyway already by doctest
+    Enable all workflows and delete old runs (keeping 50) for the configured owner.
+
+    >>> # Not called here: it acts on the live account. pytest's addopts ignores this
+    >>> # module's doctests anyway.
     >>> # main()
 
     """
@@ -785,4 +839,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    sys.stderr.write("this is a library only, the executable is named 'keep_github_workflows_active_cli.py'\n")
+    sys.stderr.write("this is a library only, the executable is named 'keep-github-workflows-active'\n")

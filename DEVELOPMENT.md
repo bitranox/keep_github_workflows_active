@@ -44,7 +44,8 @@ environment variable is set, and need `SECRET_GITHUB_OWNER` and `SECRET_GITHUB_T
 with `make testintegration`; they re-enable the configured account's workflows.
 
 `pytest` skips the doctests of `src/keep_github_workflows_active/keep_github_workflow_active.py`
-(`--ignore` in `[tool.pytest.ini_options] addopts`), because they call the live GitHub API.
+(`--ignore` in `[tool.pytest.ini_options] addopts`); several of them call the live GitHub API
+when credentials are configured.
 
 ### Dependency auditing
 
