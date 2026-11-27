@@ -173,3 +173,40 @@ def test_when_github_refuses_a_listing_the_error_names_its_message() -> None:
 
     with pytest.raises(RuntimeError, match="Resource not accessible"):
         keep_active.get_workflow_runs(owner="o", repository="r", session=session)
+
+
+@pytest.mark.os_agnostic
+def test_when_a_run_has_no_id_the_listing_is_refused_instead_of_reading_run_zero() -> None:
+    url = f"{API}/repos/o/r/actions/runs?per_page=100"
+    session, _ = _session_with({("GET", url): CannedReply(body={"workflow_runs": [{"status": "completed"}]})})
+
+    with pytest.raises(RuntimeError, match=r"workflow_runs\.0\.id: Field required"):
+        keep_active.get_workflow_runs(owner="o", repository="r", session=session)
+
+
+@pytest.mark.os_agnostic
+def test_when_a_repository_has_no_name_the_listing_is_refused() -> None:
+    org = f"{API}/orgs/acme/repos?per_page=100"
+    session, _ = _session_with({("GET", org): CannedReply(body=[{"private": True}])})
+
+    with pytest.raises(RuntimeError, match=r"repositories\.0\.name: Field required"):
+        keep_active.get_repositories(owner="acme", session=session)
+
+
+@pytest.mark.os_agnostic
+@pytest.mark.parametrize("body", ["not a listing", None, {"total_count": 3}], ids=["string", "null", "no-list-key"])
+def test_when_a_repository_reply_has_no_list_it_is_refused_instead_of_reading_zero(body: object) -> None:
+    org = f"{API}/orgs/acme/repos?per_page=100"
+    session, _ = _session_with({("GET", org): CannedReply(body=body)})
+
+    with pytest.raises(RuntimeError, match="Unexpected GitHub reply"):
+        keep_active.get_repositories(owner="acme", session=session)
+
+
+@pytest.mark.os_agnostic
+def test_when_a_workflow_reply_lacks_its_list_it_is_refused() -> None:
+    url = f"{API}/repos/o/r/actions/workflows?per_page=100"
+    session, _ = _session_with({("GET", url): CannedReply(body={"total_count": 1})})
+
+    with pytest.raises(RuntimeError, match=r"workflows: Field required"):
+        keep_active.get_workflows(owner="o", repository="r", session=session)

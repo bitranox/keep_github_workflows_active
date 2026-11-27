@@ -18,6 +18,12 @@
 
 ### Fixed
 
+- A GitHub reply missing a field the tool acts on now stops the run with
+  `Unexpected GitHub reply for <what>: <field path>: <reason>` (or "the body is not JSON"). The
+  reply models used to default those fields, so a run without `id` was read as run `0` (and
+  `delete-old-workflow-runs` would have sent `DELETE .../actions/runs/0`), a repository without
+  `name` as `''`, and a reply that was not a listing at all as an empty one, reporting
+  "Found 0" and exiting 0.
 - `notebooks/Quickstart.ipynb` installs the checkout it runs in, so CI's "Execute notebooks" job
   tests the commit under test. It used to install `git+https://github.com/...` every time, which is
   the pushed default branch, so a pull request's notebook run tested the code already there.

@@ -6,11 +6,11 @@ import os
 import pathlib
 import sys
 from enum import IntEnum
-from typing import Any
+from typing import cast
 
 # EXT
 import requests
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 
 # LOCAL
 from . import sanitization
@@ -53,37 +53,36 @@ class GitHubRepository(BaseModel):
     """GitHub repository from API response."""
 
     model_config = ConfigDict(extra="ignore")
-    name: str = ""
+    name: str
 
 
 class GitHubRepositoriesResponse(BaseModel):
     """List of repositories from GitHub API.
 
-    This model wraps the list response from the GitHub API.
-    Use model_validate() to parse raw JSON list responses.
+    GitHub answers the repository listing with a bare JSON array; the validator wraps it into
+    ``{"repositories": [...]}``. Any other shape is passed on unchanged, so validation refuses
+    it rather than reading it as an empty listing.
     """
 
     model_config = ConfigDict(extra="ignore")
-    repositories: list[GitHubRepository] = Field(  # pyright: ignore[reportUnknownVariableType]
-        default_factory=list
-    )
+    repositories: list[GitHubRepository]
 
     @model_validator(mode="before")
     @classmethod
-    def _wrap_list_response(cls, data: Any) -> dict[str, Any]:
-        """Wrap list responses into the expected dict structure."""
+    def _wrap_list_response(cls, data: object) -> object:
+        """Wrap a bare JSON array into the ``repositories`` field."""
         if isinstance(data, list):
-            return {"repositories": data}
-        if isinstance(data, dict):
-            return dict(data)  # pyright: ignore[reportUnknownArgumentType]
-        return {"repositories": []}
+            # isinstance cannot name the element type; the elements are validated as
+            # GitHubRepository right after this hook.
+            return {"repositories": cast("list[object]", data)}
+        return data
 
 
 class GitHubWorkflow(BaseModel):
     """GitHub workflow from API response."""
 
     model_config = ConfigDict(extra="ignore")
-    path: str = ""
+    path: str
 
     @property
     def filename(self) -> str:
@@ -98,16 +97,14 @@ class GitHubWorkflowsResponse(BaseModel):
     """
 
     model_config = ConfigDict(extra="ignore")
-    workflows: list[GitHubWorkflow] = Field(  # pyright: ignore[reportUnknownVariableType]
-        default_factory=list
-    )
+    workflows: list[GitHubWorkflow]
 
 
 class GitHubWorkflowRun(BaseModel):
     """GitHub workflow run from API response."""
 
     model_config = ConfigDict(extra="ignore")
-    id: int = 0
+    id: int
 
 
 class GitHubWorkflowRunsResponse(BaseModel):
@@ -117,9 +114,7 @@ class GitHubWorkflowRunsResponse(BaseModel):
     """
 
     model_config = ConfigDict(extra="ignore")
-    workflow_runs: list[GitHubWorkflowRun] = Field(  # pyright: ignore[reportUnknownVariableType]
-        default_factory=list
-    )
+    workflow_runs: list[GitHubWorkflowRun]
 
 
 class GitHubErrorResponse(BaseModel):
@@ -492,6 +487,33 @@ def get_github_token() -> str:
     return _lookup_config_value("SECRET_GITHUB_TOKEN")
 
 
+def _parse_reply[ReplyModelT: BaseModel](model: type[ReplyModelT], response: requests.Response, *, what: str) -> ReplyModelT:
+    """Parse a successful GitHub reply into ``model``, refusing a body that does not fit it.
+
+    Why
+        A reply missing a field the tool acts on (a run id, a repository name, the listing
+        itself) must stop the run: read with defaults it would delete run 0 or report an empty
+        listing and exit 0.
+
+    Raises
+    ------
+    RuntimeError
+        Naming ``what`` and one ``<field path>: <reason>`` per validation error, or saying the
+        body is not JSON. The original exception is kept as ``__cause__``.
+    """
+    try:
+        return model.model_validate(response.json())
+    except ValidationError as exc:
+        details = "; ".join(f"{'.'.join(str(part) for part in error['loc']) or '<reply>'}: {error['msg']}" for error in exc.errors())
+        message = f"Unexpected GitHub reply for {what}: {details}"
+        logger.error(sanitization.sanitize_message(message))
+        raise RuntimeError(message) from exc
+    except ValueError as exc:
+        message = f"Unexpected GitHub reply for {what}: the body is not JSON"
+        logger.error(sanitization.sanitize_message(message))
+        raise RuntimeError(message) from exc
+
+
 def _get_next_page_url(response: requests.Response) -> str | None:
     """Extract next page URL from GitHub API pagination links.
 
@@ -554,7 +576,7 @@ def get_repositories(owner: str, session: requests.Session) -> list[str]:
             else:
                 response = session.get(url, timeout=REQUEST_TIMEOUT_SECONDS)
                 response.raise_for_status()
-            parsed = GitHubRepositoriesResponse.model_validate(response.json())
+            parsed = _parse_reply(GitHubRepositoriesResponse, response, what=f"repositories of {owner}")
             repositories.extend(repo.name for repo in parsed.repositories)
             url = _get_next_page_url(response)
 
@@ -598,7 +620,7 @@ def get_workflows(owner: str, repository: str, session: requests.Session) -> lis
         try:
             response = session.get(url, timeout=REQUEST_TIMEOUT_SECONDS)
             response.raise_for_status()
-            parsed = GitHubWorkflowsResponse.model_validate(response.json())
+            parsed = _parse_reply(GitHubWorkflowsResponse, response, what=f"workflows of {owner}/{repository}")
             workflows.extend(workflow.filename for workflow in parsed.workflows)
             url = _get_next_page_url(response)
 
@@ -641,7 +663,7 @@ def get_workflow_runs(owner: str, repository: str, session: requests.Session) ->
         try:
             response = session.get(url, timeout=REQUEST_TIMEOUT_SECONDS)
             response.raise_for_status()
-            parsed = GitHubWorkflowRunsResponse.model_validate(response.json())
+            parsed = _parse_reply(GitHubWorkflowRunsResponse, response, what=f"workflow runs of {owner}/{repository}")
             workflow_run_ids.extend(run.id for run in parsed.workflow_runs)
             url = _get_next_page_url(response)
 
