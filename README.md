@@ -24,10 +24,10 @@ start to disable schedules automatically.
 
 The automation focuses on two responsibilities:
 
-1. **Keep all workflows active** – iterate every repository owned by the
+1. **Keep all workflows active** - iterate every repository owned by the
    configured user and flip disabled workflows back to the active state so
    cron-based automation continues to run.
-2. **Delete stale workflow runs** – retain an operator-defined number of the
+2. **Delete stale workflow runs** - retain an operator-defined number of the
    freshest runs per workflow and delete older artifacts so storage quotas and
    repository hygiene remain under control.
 
@@ -62,8 +62,8 @@ runtime:
 
 Define the following secrets:
 
-- `SECRET_GITHUB_OWNER` – GitHub username whose repositories should be scanned.
-- `SECRET_GITHUB_TOKEN` – the fine-grained personal access token you generated.
+- `SECRET_GITHUB_OWNER` - GitHub username whose repositories should be scanned.
+- `SECRET_GITHUB_TOKEN` - the fine-grained personal access token you generated.
 
 Keeping the credentials inside secrets ensures the nightly cleanup workflow can
 authenticate without hard-coding sensitive values in the repository.
@@ -93,22 +93,15 @@ in [INSTALL.md](INSTALL.md). All supported options expose both the
 `keep_github_workflows_active` and `keep-github-workflows-active` entry points on
 your `PATH`.
 
-### Python 3.13+ baseline
+### Supported platform: Python 3.14 on Linux
 
-- The package targets **Python 3.13 and newer**. Older interpreters are no
-  longer supported; the codebase relies on modern conveniences such as
-  `Path.unlink(missing_ok=True)`.
-- Runtime modules now use native Python 3.13 type syntax (e.g., `list[str]`,
-  `Sequence[str] | None`) and drop legacy compatibility helpers.
+- The package requires **Python 3.14 or newer** (`requires-python = ">=3.14"`)
+  and is built and tested for **Linux** only.
+- Continuous integration runs on GitHub's `ubuntu-latest` runner with CPython
+  3.14; the CI matrix comes from the `Programming Language :: Python :: 3.14`
+  classifier and `[tool.ci].os` in `pyproject.toml`.
 - Runtime dependencies include `rich-click` for the CLI surface and
-  `lib_cli_exit_tools` for consistent exit handling. Development extras pin the
-  tooling stack (pytest, ruff, pyright, bandit, build, twine, codecov-cli,
-  pip-audit, textual, import-linter) to their latest major releases.
-- Development dependencies were refreshed to the latest stable releases
-  (`ruff>=0.14.1`, `textual>=6.4.0`).
-- Continuous integration runs across GitHub's hosted runners (`ubuntu-latest`,
-  `macos-latest`, `windows-latest`) on CPython 3.13 in addition to the most
-  recent 3.x release Actions makes available.
+  `lib_cli_exit_tools` for consistent exit handling.
 
 ### Why we recommend uv: supply-chain protection
 

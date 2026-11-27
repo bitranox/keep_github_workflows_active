@@ -3,7 +3,7 @@ name = "keep_github_workflows_active"
 version = "2.3.6"
 description = "Template for python apps with registered cli commands"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.14"
 dependencies = ["rich-click>=1.9.9", "lib_cli_exit_tools>=2.4.1", "requests>=2.34.2", "pydantic>=2.14.1"]
 license = { text = "MIT" }
 authors = [{ name = "bitranox", email = "bitranox@gmail.com" }]
@@ -13,11 +13,9 @@ classifiers = [
   "Programming Language :: Python :: 3 :: Only",
   "License :: OSI Approved :: MIT License",
   "Environment :: Console",
-  "Operating System :: OS Independent",
+  "Operating System :: POSIX :: Linux",
   "Typing :: Typed",
-  "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.14",
-  "Programming Language :: Python :: 3.15",
 ]
 
 # System packages required for CI runners (read by GitHub Actions workflow template)
@@ -27,7 +25,7 @@ system-dependencies-ubuntu = []
 system-dependencies-macos = []
 system-dependencies-windows-pip = []
 system-dependencies-windows-choco = []
-os = ["ubuntu-latest", "windows-latest", "macos-latest"]
+os = ["ubuntu-latest"]
 
 [project.urls]
 Homepage = "https://github.com/bitranox/keep_github_workflows_active"
@@ -92,7 +90,7 @@ include = [
 
 [tool.ruff]
 line-length = 160
-target-version = "py313"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = [

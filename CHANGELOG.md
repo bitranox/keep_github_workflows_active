@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Supported platform is now Python 3.14 on Linux only: `requires-python = ">=3.14"`, the
+  classifiers name 3.14 and `Operating System :: POSIX :: Linux`, and CI runs `ubuntu-latest`
+  on 3.14 only (the "Activate Workflows" jobs no longer float on `3.x` or pin 3.13). The
+  scheduled run failed because `requires-python` still admitted 3.10 while the classifiers began
+  at 3.14: bmk raised the `import-linter` floor to 2.17 (fine on 3.14), and `uv lock` could not
+  resolve it for 3.10, where 2.16 and later do not install.
+
 ### Fixed
 
 - `notebooks/Quickstart.ipynb` installs the checkout it runs in, so CI's "Execute notebooks" job
