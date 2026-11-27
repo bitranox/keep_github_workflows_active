@@ -157,6 +157,29 @@ def test_when_a_workflow_is_skipped_no_request_is_sent() -> None:
 
 
 @pytest.mark.os_agnostic
+def test_every_skipped_workflow_type_has_a_prefix_and_a_reason() -> None:
+    assert set(keep_active.SKIPPED_WORKFLOWS) == set(keep_active.SkippedWorkflowType)
+
+
+@pytest.mark.os_agnostic
+@pytest.mark.parametrize(
+    ("workflow_filename", "reason"),
+    [
+        ("pages-build-deployment", "those can not be enabled"),
+        ("dependabot-updates", "managed by Dependabot"),
+        ("update-graph", "managed by GitHub dependency graph"),
+    ],
+)
+def test_each_skipped_workflow_type_reports_its_own_reason_and_sends_nothing(workflow_filename: str, reason: str) -> None:
+    session, fake = _session_with({})
+
+    result = keep_active.enable_workflow(owner="o", repository="r", workflow_filename=workflow_filename, session=session)
+
+    assert result == f"Repository r, workflow {workflow_filename} skipped - {reason}"
+    assert fake.sent == []
+
+
+@pytest.mark.os_agnostic
 def test_when_a_run_is_deleted_the_delete_goes_through_the_session() -> None:
     url = f"{API}/repos/o/r/actions/runs/42"
     session, fake = _session_with({("DELETE", url): CannedReply(status=204)})

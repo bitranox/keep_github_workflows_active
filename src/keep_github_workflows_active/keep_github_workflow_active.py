@@ -37,7 +37,8 @@ import os
 import pathlib
 import sys
 from enum import IntEnum
-from typing import cast
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Final, NamedTuple, cast
 
 # EXT
 import requests
@@ -45,6 +46,9 @@ from pydantic import BaseModel, ConfigDict, ValidationError, model_validator
 
 # LOCAL
 from . import sanitization
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 REQUEST_TIMEOUT_SECONDS = 30
 #: GitHub API status code returned when the org endpoint has no matching organization.
@@ -68,11 +72,22 @@ class SkippedWorkflowType(IntEnum):
     UPDATE_GRAPH = 3
 
 
-SKIPPED_WORKFLOW_PREFIXES: dict[SkippedWorkflowType, str] = {
-    SkippedWorkflowType.PAGES_BUILD_DEPLOYMENT: "pages-build-deployment",
-    SkippedWorkflowType.DEPENDABOT: "dependabot",
-    SkippedWorkflowType.UPDATE_GRAPH: "update-graph",
-}
+class SkippedWorkflowRule(NamedTuple):
+    """File name prefix of a skipped workflow and the reason the skip message gives."""
+
+    prefix: str
+    reason: str
+
+
+#: One row per :class:`SkippedWorkflowType`; ``tests/test_github_api.py`` checks every member
+#: has a row, so a new type cannot be added without its prefix and its reason.
+SKIPPED_WORKFLOWS: Final[Mapping[SkippedWorkflowType, SkippedWorkflowRule]] = MappingProxyType(
+    {
+        SkippedWorkflowType.PAGES_BUILD_DEPLOYMENT: SkippedWorkflowRule("pages-build-deployment", "those can not be enabled"),
+        SkippedWorkflowType.DEPENDABOT: SkippedWorkflowRule("dependabot", "managed by Dependabot"),
+        SkippedWorkflowType.UPDATE_GRAPH: SkippedWorkflowRule("update-graph", "managed by GitHub dependency graph"),
+    }
+)
 
 
 # =============================================================================
@@ -419,7 +434,7 @@ def enable_all_workflows(owner: str, github_token: str) -> None:
 
     Opens one :func:`github_session` for the run, lists the repositories and their
     workflow files, writes ``activate workflow <repo>/<file>`` for each and calls
-    :func:`enable_workflow`, which skips the prefixes in ``SKIPPED_WORKFLOW_PREFIXES``.
+    :func:`enable_workflow`, which skips the prefixes in ``SKIPPED_WORKFLOWS``.
 
     :param owner: The user or organisation owning the repositories.
     :param github_token: Personal access token for the session.
@@ -759,8 +774,8 @@ def delete_workflow_run(owner: str, repository: str, session: requests.Session, 
 
 def _is_skipped_workflow(workflow_filename: str) -> SkippedWorkflowType | None:
     """Check if workflow should be skipped and return the reason."""
-    for skip_type, prefix in SKIPPED_WORKFLOW_PREFIXES.items():
-        if workflow_filename.startswith(prefix):
+    for skip_type, rule in SKIPPED_WORKFLOWS.items():
+        if workflow_filename.startswith(rule.prefix):
             return skip_type
     return None
 
@@ -774,7 +789,7 @@ def enable_workflow(owner: str, repository: str, workflow_filename: str, session
     :param workflow_filename: The name of the workflow file, for example, "python-package.yml".
     :param session: Session from :func:`github_session`, its token allowed to enable workflows.
     :return: ``Enabled repository <repo>, workflow <file>``, or a ``... skipped - ...`` message for a
-        file whose name starts with a prefix in ``SKIPPED_WORKFLOW_PREFIXES`` (no request is sent then).
+        file whose name starts with a prefix in ``SKIPPED_WORKFLOWS`` (no request is sent then).
     :raises RuntimeError: When GitHub answers an error status.
 
 
@@ -802,13 +817,9 @@ def enable_workflow(owner: str, repository: str, workflow_filename: str, session
 
     response: requests.Response | None = None
     try:
-        skip_reason = _is_skipped_workflow(workflow_filename)
-        if skip_reason == SkippedWorkflowType.PAGES_BUILD_DEPLOYMENT:
-            result = f"Repository {repository}, workflow {workflow_filename} skipped - those can not be enabled"
-        elif skip_reason == SkippedWorkflowType.DEPENDABOT:
-            result = f"Repository {repository}, workflow {workflow_filename} skipped - managed by Dependabot"
-        elif skip_reason == SkippedWorkflowType.UPDATE_GRAPH:
-            result = f"Repository {repository}, workflow {workflow_filename} skipped - managed by GitHub dependency graph"
+        skip_type = _is_skipped_workflow(workflow_filename)
+        if skip_type is not None:
+            result = f"Repository {repository}, workflow {workflow_filename} skipped - {SKIPPED_WORKFLOWS[skip_type].reason}"
         else:
             response = session.put(url, timeout=REQUEST_TIMEOUT_SECONDS)
             response.raise_for_status()

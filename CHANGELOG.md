@@ -15,6 +15,11 @@
   (measured against api.github.com: 128 ms per call before, 45 ms after). The listing, enable and
   delete functions now take that `session` in place of `github_token`; the two entry points keep
   their `owner` / `github_token` parameters.
+- The skipped workflow types are one read-only table, `SKIPPED_WORKFLOWS`, holding each
+  `SkippedWorkflowType`'s file name prefix and skip reason; it replaces the
+  `SKIPPED_WORKFLOW_PREFIXES` dict and the per-type `if`/`elif` of reasons, under which a type
+  added without its reason branch had its workflows enabled anyway. A type without a row now fails
+  the test suite. The skip messages are unchanged.
 
 ### Fixed
 

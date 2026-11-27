@@ -100,7 +100,7 @@ link of the `Link` header (`_get_next_page_url(response) -> str | None`). Reques
   run ids of all the repository's workflow runs.
 * `enable_workflow(owner: str, repository: str, workflow_filename: str, session: requests.Session) -> str`:
   sends `PUT .../actions/workflows/<file>/enable` and returns `Enabled repository <repo>, workflow <file>`.
-  File names starting with a prefix in `SKIPPED_WORKFLOW_PREFIXES` (`pages-build-deployment`,
+  File names starting with a prefix in `SKIPPED_WORKFLOWS` (`pages-build-deployment`,
   `dependabot`, `update-graph`; enum `SkippedWorkflowType`) send no request and return a
   `... skipped - ...` message.
 * `delete_workflow_run(owner: str, repository: str, session: requests.Session, run_id_to_delete: int) -> None`:
