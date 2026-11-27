@@ -136,7 +136,7 @@ class GitHubErrorResponse(BaseModel):
             return cls()
         try:
             return cls.model_validate(response.json())
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             return cls(message=response.text or response.reason or "Error")
 
 

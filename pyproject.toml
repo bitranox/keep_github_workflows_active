@@ -4,7 +4,7 @@ version = "2.3.6"
 description = "Template for python apps with registered cli commands"
 readme = "README.md"
 requires-python = ">=3.14"
-dependencies = ["rich-click>=1.9.9", "lib_cli_exit_tools>=2.4.1", "requests>=2.34.2", "pydantic>=2.14.1"]
+dependencies = ["rich-click>=1.9.9", "lib_cli_exit_tools>=2.5.0", "requests>=2.34.2", "pydantic>=2.14.4"]
 license = { text = "MIT" }
 authors = [{ name = "bitranox", email = "bitranox@gmail.com" }]
 keywords = ["logging", "rich", "cli", "terminal", "ansi"]
@@ -37,7 +37,7 @@ dev = [
   "pytest>=9.2.0",
   "pytest-cov>=7.1.0",
   "pytest-xdist>=3.8.0",
-  "ruff>=0.17.3",
+  "ruff>=0.17.6",
   "pyright[nodejs]>=1.1.414",
   "bandit>=1.9.4",
   "build>=1.6.1",
@@ -51,11 +51,11 @@ dev = [
   # Re-enable once codecov-cli relaxes its click<8.3.0 pin.
   # "codecov-cli>=11.2.8",
   # Transitive CVE pins
-  "click>=8.5.0",                # CVE-2026-7246
+  "click>=8.5.1",                # CVE-2026-7246
   "certifi>=2026.10.23",         # PYSEC-2026-4320
   "pip-audit>=2.10.1",
   "textual>=8.2.8",
-  "import-linter>=2.15",
+  "import-linter>=2.17",
   "rtoml>=0.14.0"
 ]
 
@@ -238,4 +238,4 @@ ignore-vulns = ["CVE-2026-3219", "CVE-2026-6357", "PYSEC-2022-42969", "CVE-2026-
 
 [tool.uv]
 exclude-newer = "7 days"
-exclude-newer-package = {lib-cli-exit-tools = false, hatchling = "2026-10-28T02:27:31Z", pytest = "2026-10-27T21:30:21Z", ruff = "2026-10-27T00:34:06Z"}
+exclude-newer-package = {lib-cli-exit-tools = false, keep-github-workflows-active = false}
