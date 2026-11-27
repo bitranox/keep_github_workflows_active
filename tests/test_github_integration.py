@@ -41,9 +41,9 @@ pytestmark = [pytest.mark.local_only, pytest.mark.integration]
 def test_get_repositories_returns_list() -> None:
     """Verify get_repositories returns a list of repository names."""
     owner = keep_active.get_owner()
-    token = keep_active.get_github_token()
 
-    repos = keep_active.get_repositories(owner=owner, github_token=token)
+    with keep_active.github_session(keep_active.get_github_token()) as session:
+        repos = keep_active.get_repositories(owner=owner, session=session)
 
     assert isinstance(repos, list)
 
@@ -52,24 +52,24 @@ def test_get_repositories_returns_list() -> None:
 def test_get_workflows_returns_list_for_each_repository() -> None:
     """Verify get_workflows returns workflow filenames for repositories."""
     owner = keep_active.get_owner()
-    token = keep_active.get_github_token()
-    repos = keep_active.get_repositories(owner=owner, github_token=token)
 
-    for repo in repos[:3]:  # Limit to first 3 repos to avoid rate limits
-        workflows = keep_active.get_workflows(owner=owner, repository=repo, github_token=token)
-        assert isinstance(workflows, list)
+    with keep_active.github_session(keep_active.get_github_token()) as session:
+        repos = keep_active.get_repositories(owner=owner, session=session)
+        for repo in repos[:3]:  # Limit to first 3 repos to avoid rate limits
+            workflows = keep_active.get_workflows(owner=owner, repository=repo, session=session)
+            assert isinstance(workflows, list)
 
 
 @pytest.mark.skipif(not _has_github_credentials(), reason="GitHub credentials not available")
 def test_get_workflow_runs_returns_list_for_each_repository() -> None:
     """Verify get_workflow_runs returns run IDs for repositories."""
     owner = keep_active.get_owner()
-    token = keep_active.get_github_token()
-    repos = keep_active.get_repositories(owner=owner, github_token=token)
 
-    for repo in repos[:3]:  # Limit to first 3 repos to avoid rate limits
-        run_ids = keep_active.get_workflow_runs(owner=owner, repository=repo, github_token=token)
-        assert isinstance(run_ids, list)
+    with keep_active.github_session(keep_active.get_github_token()) as session:
+        repos = keep_active.get_repositories(owner=owner, session=session)
+        for repo in repos[:3]:  # Limit to first 3 repos to avoid rate limits
+            run_ids = keep_active.get_workflow_runs(owner=owner, repository=repo, session=session)
+            assert isinstance(run_ids, list)
 
 
 @pytest.mark.skipif(not _has_github_credentials(), reason="GitHub credentials not available")
@@ -88,26 +88,25 @@ def test_enable_all_workflows_completes_without_error(capsys: pytest.CaptureFixt
 def test_enable_workflow_handles_known_repository() -> None:
     """Verify enable_workflow returns success message for a known workflow."""
     owner = keep_active.get_owner()
-    token = keep_active.get_github_token()
 
-    repos = keep_active.get_repositories(owner=owner, github_token=token)
-    repository = None
-    workflow_filename = None
-    for repo in repos:
-        workflows = keep_active.get_workflows(owner=owner, repository=repo, github_token=token)
-        if workflows:
-            repository = repo
-            workflow_filename = workflows[0]
-            break
+    with keep_active.github_session(keep_active.get_github_token()) as session:
+        repository = None
+        workflow_filename = None
+        for repo in keep_active.get_repositories(owner=owner, session=session):
+            workflows = keep_active.get_workflows(owner=owner, repository=repo, session=session)
+            if workflows:
+                repository = repo
+                workflow_filename = workflows[0]
+                break
 
-    if repository is None or workflow_filename is None:
-        pytest.skip("No repository with workflows found for this owner")
+        if repository is None or workflow_filename is None:
+            pytest.skip("No repository with workflows found for this owner")
 
-    result = keep_active.enable_workflow(
-        owner=owner,
-        repository=repository,
-        workflow_filename=workflow_filename,
-        github_token=token,
-    )
+        result = keep_active.enable_workflow(
+            owner=owner,
+            repository=repository,
+            workflow_filename=workflow_filename,
+            session=session,
+        )
 
     assert result  # Non-empty result message

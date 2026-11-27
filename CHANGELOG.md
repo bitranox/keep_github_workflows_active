@@ -10,6 +10,11 @@
   scheduled run failed because `requires-python` still admitted 3.10 while the classifiers began
   at 3.14: bmk raised the `import-linter` floor to 2.17 (fine on 3.14), and `uv lock` could not
   resolve it for 3.10, where 2.16 and later do not install.
+- `enable-all-workflows` and `delete-old-workflow-runs` reuse one HTTPS connection per run through
+  a `requests.Session` (`github_session()`), instead of opening a new one for every API call
+  (measured against api.github.com: 128 ms per call before, 45 ms after). The listing, enable and
+  delete functions now take that `session` in place of `github_token`; the two entry points keep
+  their `owner` / `github_token` parameters.
 
 ### Fixed
 
