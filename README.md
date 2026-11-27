@@ -12,46 +12,56 @@
 [![Maintainability](https://qlty.sh/badges/041ba2c1-37d6-40bb-85a0-ec5a8a0aca0c/maintainability.svg)](https://qlty.sh/gh/bitranox/projects/keep_github_workflows_active)
 [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 
-> **CI cadence:** The GitHub Actions CI workflow runs automatically every Monday at 07:00 UTC, in addition to push and pull request triggers.
+> **CI cadence:** the `CI` workflow runs on every push and pull request to `main`/`master` and
+> daily at 03:17 UTC; `CodeQL` runs on push, pull request and Mondays at 08:00 UTC.
 
 
 ## Overview
 
-`keep_github_workflows_active` is an automation helper that tends to every
-GitHub Actions workflow in a user's repositories. It exists to remove the
-routine maintenance burden that accrues when repositories go quiet and Actions
-start to disable schedules automatically.
+`keep_github_workflows_active` keeps the GitHub Actions workflows of an owner's repositories
+enabled and prunes their old workflow runs. GitHub disables scheduled workflows in repositories
+without recent activity (per GitHub's Actions docs); running this tool on a schedule re-enables
+them.
 
-The automation focuses on two responsibilities:
+It has two jobs, one CLI command each:
 
-1. **Keep all workflows active** - iterate every repository owned by the
-   configured user and flip disabled workflows back to the active state so
-   cron-based automation continues to run.
-2. **Delete stale workflow runs** - retain an operator-defined number of the
-   freshest runs per workflow and delete older artifacts so storage quotas and
-   repository hygiene remain under control.
+1. **`enable-all-workflows`** - for every repository of the owner, send the "enable workflow"
+   request for each of its workflow files. Workflow files whose names start with
+   `pages-build-deployment` (cannot be enabled), `dependabot` (managed by Dependabot) or
+   `update-graph` (managed by the dependency graph) are skipped.
+2. **`delete-old-workflow-runs`** - for every repository of the owner, keep the newest runs (the
+   highest run ids across all of the repository's workflows; 50 by default, `--keep` to change)
+   and delete the rest.
 
-Both behaviors run as part of repository automation (for example on a nightly
-schedule) once the required GitHub token is in place.
+Repositories are listed from `/orgs/<owner>/repos`; when GitHub answers 404 (the owner is not an
+organisation), from `/users/<owner>/repos` instead. Per GitHub's REST docs, the user endpoint
+lists the user's public repositories.
+
+This repository runs both commands from `.github/workflows/activate_workflows.yml`, whose
+`activate` job runs only on the weekly schedule (Fridays at 03:47 UTC); push and pull request
+runs of that workflow only run the tests.
 
 
 ## Prerequisites
 
 ### Generate an access token
 
-The automation requires a fine-grained personal access token with repository
-scope. You can create one by visiting the GitHub self-service page:
+The commands authenticate with a personal access token, sent as `Authorization: Bearer <token>`.
+You can create one on the GitHub settings page:
 
-- [Generate fine-grained personal access token](https://github.com/settings/personal-access-tokens)
+- [Personal access tokens](https://github.com/settings/personal-access-tokens)
 
-When configuring the token, grant at least the following permissions:
+Give the token the permissions GitHub's REST docs list for the endpoints the tool calls:
 
-- **Actions:** Read/Write (needed to toggle workflow states and delete runs).
-- **Metadata:** Read (lets the script discover repositories you own).
+| Endpoint                                                    | Used by                    |
+|-------------------------------------------------------------|----------------------------|
+| `GET /orgs/<owner>/repos`, then `GET /users/<owner>/repos`  | both commands              |
+| `GET /repos/<owner>/<repo>/actions/workflows`               | `enable-all-workflows`     |
+| `PUT /repos/<owner>/<repo>/actions/workflows/<file>/enable` | `enable-all-workflows`     |
+| `GET /repos/<owner>/<repo>/actions/runs`                    | `delete-old-workflow-runs` |
+| `DELETE /repos/<owner>/<repo>/actions/runs/<run_id>`        | `delete-old-workflow-runs` |
 
-Tokens expire automatically. Renew them before the expiry hits to keep the
-automation alive. The previous test token that powered the repository expired on
-**January 19, 2025**, so any current setup must already use a newer credential.
+Tokens can expire; renew yours before its expiry date to keep the scheduled runs working.
 
 ### Store the token as a repository secret
 
@@ -62,36 +72,46 @@ runtime:
 
 Define the following secrets:
 
-- `SECRET_GITHUB_OWNER` - GitHub username whose repositories should be scanned.
-- `SECRET_GITHUB_TOKEN` - the fine-grained personal access token you generated.
+- `SECRET_GITHUB_OWNER` - the user or organisation whose repositories should be scanned.
+- `SECRET_GITHUB_TOKEN` - the personal access token you generated.
 
-Keeping the credentials inside secrets ensures the nightly cleanup workflow can
-authenticate without hard-coding sensitive values in the repository.
+### Where the commands look for the owner and token
 
-For local development you can place the same keys inside a `.env` file at the
-repository root. The automation reads from the environment first and falls back
-to `.env` when running outside GitHub Actions.
+`--owner` and `--token` on the command line win. Without them, each value is looked up in this
+order, and the first non-empty value is used:
 
-> **Note:** the included tests and CLI commands exercise the live GitHub API.
-> When `SECRET_GITHUB_OWNER` and `SECRET_GITHUB_TOKEN` point at a real account,
-> running `make test` (or the workflow maintenance commands directly) will
-> re-enable workflows and prune old workflow runs across the configured
-> repositories.
+1. the environment variable (`SECRET_GITHUB_OWNER` / `SECRET_GITHUB_TOKEN`);
+2. the file named by `KEEP_GITHUB_WORKFLOWS_ACTIVE_DOTENV_PATH`, if that variable is set;
+3. `.env` in the current working directory;
+4. `.env` in the installed package directory;
+5. `.env` two levels above the package directory (the repository root when running from a
+   source checkout or an editable install).
+
+A `.env` file holds `KEY=value` lines; blank lines and lines starting with `#` are skipped, and
+surrounding quotes are removed from the value. When no value is found the command stops with
+`Missing required configuration: SECRET_GITHUB_OWNER` (or `..._TOKEN`).
+
+### Which tests call the live GitHub API
+
+`make test` and CI never call the live API: the tests that do are marked `integration` and
+`local_only` (`tests/test_github_integration.py`), which `make test` excludes, and they skip
+whenever the `CI` environment variable is set. `make testintegration` runs them locally against
+the configured account; they list repositories, workflows and runs and call
+`enable_all_workflows` and `enable_workflow`, which re-enable that account's workflows. No test
+deletes workflow runs.
 
 
 ## Installation
 
-Install the package locally when you want to run the CLI helpers or contribute
-changes:
+Install the package from PyPI:
 
 ```bash
 pip install keep_github_workflows_active
 ```
 
-Alternative flows (pipx, uv, editable installs, or source builds) are described
-in [INSTALL.md](INSTALL.md). All supported options expose both the
-`keep_github_workflows_active` and `keep-github-workflows-active` entry points on
-your `PATH`.
+Installing from a checkout, from a built wheel, with pipx or with uv is described in
+[INSTALL.md](INSTALL.md). Every install puts two console scripts on your `PATH`,
+`keep_github_workflows_active` and `keep-github-workflows-active`, which run the same CLI.
 
 ### Supported platform: Python 3.14 on Linux
 
@@ -100,8 +120,8 @@ your `PATH`.
 - Continuous integration runs on GitHub's `ubuntu-latest` runner with CPython
   3.14; the CI matrix comes from the `Programming Language :: Python :: 3.14`
   classifier and `[tool.ci].os` in `pyproject.toml`.
-- Runtime dependencies include `rich-click` for the CLI surface and
-  `lib_cli_exit_tools` for consistent exit handling.
+- Runtime dependencies: `rich-click` (CLI), `lib_cli_exit_tools` (exit codes and traceback
+  output), `requests` (GitHub API calls) and `pydantic` (parsing GitHub's replies).
 
 ### Why we recommend uv: supply-chain protection
 
@@ -135,50 +155,75 @@ exclude-newer = "7 days"
 
 ## Usage
 
-Once installed and authenticated via repository secrets, schedule the automation
-from a GitHub Actions workflow (see `docs/systemdesign/module_reference.md` for
-the architectural wiring). The CLI remains available for local smoke-tests and
-packaging checks while the richer workflow management helpers iterate:
+Run the two maintenance commands from a scheduled GitHub Actions workflow, as
+`.github/workflows/activate_workflows.yml` does, or by hand:
 
 ```bash
-keep_github_workflows_active info
-keep_github_workflows_active hello
-keep_github_workflows_active fail
-keep_github_workflows_active --traceback fail
-keep_github_workflows_active enable-all-workflows [--owner <user>] [--token <pat>]
-keep_github_workflows_active delete-old-workflow-runs [--owner <user>] [--token <pat>] [--keep <n>]
-keep-github-workflows-active info
-python -m keep_github_workflows_active info
+keep-github-workflows-active enable-all-workflows [--owner <owner>] [--token <token>]
+keep-github-workflows-active delete-old-workflow-runs [--owner <owner>] [--token <token>] [--keep <n>]
 ```
 
-The workflow maintenance commands accept optional flags. When ``--owner`` or
-``--token`` is omitted the CLI falls back to the values discovered via
-environment variables or the project's ``.env`` file. ``--keep`` defaults to
-``50`` workflow runs per repository.
+| Option    | Commands                   | Meaning                                                                 |
+|-----------|----------------------------|-------------------------------------------------------------------------|
+| `--owner` | both                       | user or organisation; defaults to `SECRET_GITHUB_OWNER` (lookup above)  |
+| `--token` | both                       | personal access token; defaults to `SECRET_GITHUB_TOKEN` (lookup above) |
+| `--keep`  | `delete-old-workflow-runs` | runs to keep per repository, default `50`                               |
 
-Programmatic access is also exposed via the public helpers:
+Each command opens one HTTPS session for the whole run and reuses its connection for every API
+call. Lists are read 100 entries per page, following GitHub's pagination links.
+
+A command stops with a non-zero exit code when:
+
+- GitHub answers an error status while listing repositories, workflows or runs, or while enabling
+  a workflow (`ERROR reading ...` / `ERROR enabling ...`);
+- a reply does not have the shape the tool acts on, for example a run without `id` or a listing
+  that is not a list (`Unexpected GitHub reply for <what>: <field>: <reason>`, or
+  `... the body is not JSON`);
+- a delete request fails at the network level (`ERROR deleting workflow run ID ...`).
+
+The other commands are diagnostics:
+
+```bash
+keep-github-workflows-active --version
+keep-github-workflows-active info               # print package metadata
+keep-github-workflows-active hello              # print "Hello World"
+keep-github-workflows-active fail               # raise a RuntimeError (short error output)
+keep-github-workflows-active --traceback fail   # the same with the full traceback
+python -m keep_github_workflows_active --help   # same CLI as the console scripts
+```
+
+Without a subcommand the CLI prints its help.
+
+### Python API
+
+The functions behind the commands live in `keep_github_workflows_active.keep_github_workflow_active`:
 
 ```python
-import keep_github_workflows_active as kgwa
+from keep_github_workflows_active import keep_github_workflow_active as kgwa
 
-kgwa.emit_greeting()
-try:
-    kgwa.raise_intentional_failure()
-except RuntimeError as exc:
-    print(f"caught expected failure: {exc}")
+token = kgwa.get_github_token()  # same lookup as the CLI
+kgwa.enable_all_workflows(owner="example-org", github_token=token)
+kgwa.delete_old_workflow_runs(owner="example-org", github_token=token, number_of_workflow_runs_to_keep=50)
 
-kgwa.print_info()
+# The single-step functions take a session from github_session():
+with kgwa.github_session(token) as session:
+    for repository in kgwa.get_repositories(owner="example-org", session=session):
+        run_ids = kgwa.get_workflow_runs(owner="example-org", repository=repository, session=session)
 ```
+
+The package root exports only the diagnostic helpers (`emit_greeting`,
+`raise_intentional_failure`, `noop_main`, `print_info`, `CANONICAL_GREETING`).
 
 
 ## Security
 
-All logging operations sanitize sensitive data before output to prevent credential
-leakage. The automation redacts:
+The token travels only in the `Authorization` header of the session that `github_session()`
+builds; no log message contains it. Every log message of the GitHub module passes through
+`sanitization.sanitize_message()`, which replaces token-like text with `[REDACTED]`:
 
-- GitHub personal access tokens (ghp_*, gho_*, etc.)
-- Authorization headers and API keys
-- Token-like patterns in error messages
+- GitHub tokens (`ghp_...`, `gho_...`, `ghs_...` and the other `gh?_` prefixes)
+- hexadecimal strings of 40 or more characters
+- base64-like strings of 40 or more characters
 
 For complete security documentation including incident response procedures, see
 [SECURITY.md](docs/systemdesign/SECURITY.md).

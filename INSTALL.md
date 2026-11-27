@@ -1,75 +1,48 @@
 # Installation Guide
 
-> The CLI stack uses `rich-click`, which bundles `rich` styling on top of click-style ergonomics.
+`keep_github_workflows_active` requires **Python 3.14 or newer on Linux**
+(`requires-python = ">=3.14"`, classifier `Operating System :: POSIX :: Linux`).
 
-This guide collects every supported method to install `keep_github_workflows_active`, including
-isolated environments and system package managers. Pick the option that matches your workflow.
+Every method below installs two console scripts that run the same CLI:
+`keep_github_workflows_active` and `keep-github-workflows-active`.
 
-## 1. Standard Virtual Environment (pip)
-
-```bash
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install -e .[dev]       # development install
-# or for runtime only:
-pip install .
-```
-
-## 2. Per-User Installation (No Virtualenv)
+## 1. From PyPI
 
 ```bash
-pip install --user .
+pip install keep_github_workflows_active
 ```
 
-> Note: This respects PEP 668. Avoid using it on system Python builds marked as
-> "externally managed". Ensure `~/.local/bin` (POSIX) is on your PATH so the CLI is available.
+To install with a supply-chain cooldown, see "Why we recommend uv" in [README.md](README.md).
 
-## 3. pipx (Isolated CLI-Friendly Environment)
+## 2. From a checkout (editable)
+
+These are the commands behind `make install` and `make dev`:
 
 ```bash
-pipx install .
-pipx upgrade keep_github_workflows_active
-# From Git tag/commit:
-pipx install "git+https://github.com/bitranox/keep_github_workflows_active"
+uv pip install -e .            # runtime dependencies only (make install)
+uv pip install -e ".[dev]"     # plus the test and lint tools (make dev)
 ```
 
-## 4. uv (Fast Installer/Runner)
+To install exactly the locked dependency tree CI uses:
 
 ```bash
-uv pip install -e .[dev]
-uv tool install .
-uvx keep_github_workflows_active --help
+uv sync --locked
 ```
 
-## 5. From Build Artifacts
+## 3. From a built wheel
 
 ```bash
-python -m build
-pip install dist/keep_github_workflows_active-*.whl
-pip install dist/keep_github_workflows_active-*.tar.gz   # sdist
+uv build                       # writes dist/*.whl and dist/*.tar.gz
+uv pip install dist/*.whl
 ```
 
-## 6. Poetry or PDM Managed Environments
+## 4. As an isolated command-line tool
 
 ```bash
-# Poetry
-poetry add keep_github_workflows_active     # as dependency
-poetry install                          # for local dev
-
-# PDM
-pdm add keep_github_workflows_active
-pdm install
+pipx install dist/*.whl        # after uv build
+uv tool install .              # from a checkout
 ```
 
-## 7. Install Directly from Git
-
-```bash
-pip install "git+https://github.com/bitranox/keep_github_workflows_active#egg=keep_github_workflows_active"
-```
-
-## 8. System Package Managers (Optional Distribution Channels)
-
-- Deb/RPM: Package with `fpm` for OS-native delivery
-
-All methods register both the `keep_github_workflows_active` and
-`keep-github-workflows-active` commands on your PATH.
+The `pipx/uv verification` job in `.github/workflows/activate_workflows.yml` runs `uv build`,
+`pipx install dist/*.whl` and `uv tool install .` and then calls the installed CLI with
+`--version`.
