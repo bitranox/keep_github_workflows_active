@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import io
 import json
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import pytest
 import requests
@@ -18,6 +18,9 @@ from requests.adapters import BaseAdapter, HTTPAdapter
 from urllib3 import HTTPResponse
 
 from keep_github_workflows_active import keep_github_workflow_active as keep_active
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
 
 API = "https://api.github.com"
 
@@ -41,7 +44,7 @@ class FakeGitHub(BaseAdapter):
     def __post_init__(self) -> None:
         super().__init__()
 
-    def send(self, request: requests.PreparedRequest, *args: object, **kwargs: object) -> requests.Response:  # noqa: ARG002 - the adapter API passes stream/timeout/verify the fake does not need
+    def send(self, request: requests.PreparedRequest, *args: object, **kwargs: object) -> requests.Response:
         self.sent.append(request)
         reply = self.replies.get((str(request.method), str(request.url)))
         if reply is None:
