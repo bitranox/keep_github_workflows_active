@@ -1,6 +1,6 @@
 [project]
 name = "keep_github_workflows_active"
-version = "2.3.6"
+version = "3.0.0"
 description = "Keep the GitHub Actions workflows of a user's or organisation's repositories enabled and delete their old workflow runs"
 readme = "README.md"
 requires-python = ">=3.15"

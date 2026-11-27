@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-11-27
+
 ### Changed
 
 - Runtime dependency floors raised: `lib_cli_exit_tools >=2.4.1 -> >=2.5.0`,
